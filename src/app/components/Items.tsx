@@ -9,7 +9,7 @@ import CommentOrderDialog from "./CommentOrderDialog";
 export default function Items() {
   const { setDishes } = useOrderContext();
   const [openDialog, setOpenDialog] = useState(false); // Controle do estado do diálogo
-  const [menuSubItems, setMenuSubItems] = useState<Item[]>([]); // Subitens para o diálogo
+  const [menuSubItems, setMenuSubItems] = useState<MenuSubItemType[]>([]); // Subitens para o diálogo
 
   interface MenuItem {
     category: string;
@@ -25,8 +25,13 @@ export default function Items() {
     description?: string; // Agora é opcional
   }
 
-  const handleClickOpen = (items: Item[]) => {
-    setMenuSubItems(items);
+  type MenuSubItemType = Item & {
+    category: string;
+  };
+
+  const handleClickOpen = (items: Item[], category: string) => {
+    const itemsWithCategory = items.map((item) => { return { ...item, category } });
+    setMenuSubItems(itemsWithCategory);
     setOpenDialog(true);
   };
 
@@ -43,7 +48,7 @@ export default function Items() {
           {menuItem.map((menuItem: MenuItem, index) => (
             <ListItem key={index} disablePadding>
               <ListItemButton
-                onClick={() => handleClickOpen(menuItem.items)} // Abre o diálogo com os subitens
+                onClick={() => handleClickOpen(menuItem.items, menuItem.category)} // Abre o diálogo com os subitens
                 sx={{
                   color: "#fff",
                   backgroundColor: "#56422d",

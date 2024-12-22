@@ -36,13 +36,18 @@ const handleClickSubItem = (name : string, department : string, note : string) =
 	name: name,
 	departiment: department, // Usa o departamento passado como argumento
 	amount: 1, // Substitua pelo valor correto
-	note: note // Inicializa note como null
+	note: note != "" ? note : null, // Inicializa note como null
+	category: null
 	};
 
 	setDishes((prevDishes: Dish[]) => { // Specify the type of prevDishes
 	const updatedDishes = [...prevDishes, newDish];
 	return updatedDishes; // Return the updated array
 	});
+
+	setNameValue("");
+	setSelectValue("");
+	setNoteValue("");
 
 	handleClose()
 };

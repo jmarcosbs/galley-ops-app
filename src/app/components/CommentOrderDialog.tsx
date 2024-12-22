@@ -47,7 +47,7 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
     const handleAddNote = () => {
         // Adiciona as opções selecionadas ao tempNote
         const finalNote = tempNote + (Object.keys(selectedOptions).length > 0 
-            ? ` -  com ${Object.values(selectedOptions).join(' e ')}` 
+            ? ` - ${Object.values(selectedOptions).join(' e ')}` 
             : '');
         
         if (finalNote.length > 0) {
