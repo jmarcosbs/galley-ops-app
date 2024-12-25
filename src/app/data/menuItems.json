@@ -580,6 +580,12 @@
           "departiment": "copa",
           "name": "Longneck Malzbier",
           "description": ""
+        },
+        {
+          "id": 172,
+          "departiment": "copa",
+          "name": "Longneck Zero",
+          "description": ""
         }
       ]
     },    
@@ -629,6 +635,44 @@
           "id": 171,
           "departiment": "copa",
           "name": "Picolé Ypy",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "category": "#️⃣ Acompanhamentos",
+      "departiment": "cozinha",
+      "options": [],
+      "color": "#f400a1", 
+      "items": [
+        {
+          "id": 173,
+          "departiment": "cozinha",
+          "name": "Arroz",
+          "description": ""
+        },
+        {
+          "id": 174,
+          "departiment": "cozinha",
+          "name": "Pirão",
+          "description": ""
+        },
+        {
+          "id": 175,
+          "departiment": "cozinha",
+          "name": "Salada",
+          "description": ""
+        },
+        {
+          "id": 176,
+          "departiment": "cozinha",
+          "name": "Legumes",
+          "description": ""
+        },
+        {
+          "id": 177,
+          "departiment": "cozinha",
+          "name": "Soute",
           "description": ""
         }
       ]
