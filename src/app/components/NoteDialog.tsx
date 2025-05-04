@@ -5,6 +5,7 @@ import CommentOrderDialog from './CommentOrderDialog';
 
 interface Item {
     id: number;
+    dishUniqueId: string;
     name: string;
     departiment: string;
     description?: string; // Agora é opcional
@@ -30,6 +31,7 @@ export default function NoteDialog( props : NoteDialogProps ) {
     const handleClickSubItem = (item : Item) => {
         const newDish: Dish = {
             id: item.id,
+            unique_id: `${item.id}_${Date.now()}`,
             name: item.name,
             departiment: item.departiment, // Usa o departamento passado como argumento
             amount: 1, // Substitua pelo valor correto
@@ -56,7 +58,7 @@ export default function NoteDialog( props : NoteDialogProps ) {
         });
 
     // Encontre o índice do newDish após a ordenação
-    const newDishIndex = updatedDishes.findIndex(dish => dish.id === newDish.id && dish.departiment === newDish.departiment);
+    const newDishIndex = updatedDishes.findIndex(dish => dish.unique_id === newDish.unique_id && dish.departiment === newDish.departiment);
 
     // Atualize o estado dishIndex para o índice do novo prato
     setDishIndex(newDishIndex);
@@ -88,7 +90,7 @@ export default function NoteDialog( props : NoteDialogProps ) {
                 </List>
             </Dialog>
 
-            <CommentOrderDialog dishIndex={dishIndex} openDialog={openComment} onClose={handleCloseComment}/>
+            <CommentOrderDialog dishUniqueId={dishes[dishIndex]?.unique_id} openDialog={openComment} onClose={handleCloseComment}/>
         </>
     )
 }

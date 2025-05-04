@@ -33,6 +33,7 @@ setOpen(false);
 const handleClickSubItem = (name : string, department : string, note : string) => {
 	const newDish: Dish = {
 	id: 0,
+	unique_id: `${0}_${Date.now()}`, // Gera um ID único baseado no timestamp
 	name: name,
 	departiment: department, // Usa o departamento passado como argumento
 	amount: 1, // Substitua pelo valor correto

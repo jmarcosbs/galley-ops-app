@@ -5,10 +5,10 @@ import { useOrderContext } from '../context/OrderContext';
 import CommentOrderDialog from './CommentOrderDialog';
 
 interface CommentOrderProps {
-    dishIndex : number;
+    dishUniqueId : string;
 }
 
-export default function CommentOrder({ dishIndex } : CommentOrderProps) {
+export default function CommentOrder({ dishUniqueId } : CommentOrderProps) {
 
     const [open, setOpen] = useState(false);
     const [tempNote, setTempNote] = useState(''); // Estado para a observação temporária
@@ -20,8 +20,8 @@ export default function CommentOrder({ dishIndex } : CommentOrderProps) {
 
     const handleAddNote = () => {
         setDishes(() =>
-            dishes.map((dish, index) => 
-                index === dishIndex ? { ...dish, note: tempNote } : dish
+            dishes.map((dish) => 
+                dish.unique_id === dishUniqueId ? { ...dish, note: tempNote } : dish
             )
         );
 
@@ -29,6 +29,8 @@ export default function CommentOrder({ dishIndex } : CommentOrderProps) {
     };
 
     const handleClickOpen = () => { 
+        const dishIndex = dishes.findIndex(dish => dish.unique_id === dishUniqueId); // Encontra o índice do prato
+        if (dishIndex === -1) return; // Se não encontrar, não faz nada
         setTempNote(dishes[dishIndex]?.note || ''); // Inicializa tempNote com a observação existente
         setOpen(true);
     }; 
@@ -44,7 +46,7 @@ export default function CommentOrder({ dishIndex } : CommentOrderProps) {
                 <Comment sx={{ fontSize: '30px', color: '#5c4227' }} />
             </IconButton>
 
-            <CommentOrderDialog dishIndex={dishIndex} openDialog={open} onClose={handleClose} note={tempNote}/>
+            <CommentOrderDialog dishUniqueId={dishUniqueId} openDialog={open} onClose={handleClose} note={tempNote}/>
         </>
     );
 }

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Dish = {
   id: number;
+  unique_id: string;
   name: string | null;
   departiment: string | null;
   amount: number | null;

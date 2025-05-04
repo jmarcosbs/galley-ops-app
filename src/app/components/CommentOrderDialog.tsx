@@ -21,7 +21,7 @@ interface Option {
 const menu: Option[] = menuItems["menu"];
 
 interface CommentOrderProps {
-    dishIndex: number;
+    dishUniqueId: string;
     openDialog: boolean;
     onClose: () => void;
     note?: string;
@@ -53,10 +53,13 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
         if (finalNote.length > 0) {
             setDishes((prevDishes) =>
                 prevDishes.map((dish, index) =>
-                    index === props.dishIndex ? { ...dish, note: finalNote } : dish
+                    dish.unique_id === props.dishUniqueId ? { ...dish, note: finalNote } : dish
                 )
             );
         }
+
+        console.log('Observação adicionada:', finalNote); // Log para depuração
+        console.log(dishes); // Log para depuração
 
         props.onClose();
         setTempNote('');
@@ -73,7 +76,7 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
     }
 
     function getDishId(): number {
-        const dish = dishes.find((dish, index) => index === props.dishIndex);
+        const dish = dishes.find((dish, index) => dish.unique_id === props.dishUniqueId);
         return dish ? dish.id : 0;
     }
 
