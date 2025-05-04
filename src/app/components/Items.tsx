@@ -27,10 +27,17 @@ export default function Items() {
 
   type MenuSubItemType = Item & {
     category: string;
+    dishUniqueId: string;
   };
 
   const handleClickOpen = (items: Item[], category: string) => {
-    const itemsWithCategory = items.map((item) => { return { ...item, category } });
+    const itemsWithCategory = items.map((item) => { 
+      return { 
+        ...item,
+        category,
+        dishUniqueId: `${item.id}_${Date.now()}`, // Gera um ID único baseado no timestamp
+      } 
+    });
     setMenuSubItems(itemsWithCategory);
     setOpenDialog(true);
   };
