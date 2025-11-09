@@ -3,13 +3,45 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #111111;
+    --card: #ffffff;
+    --card-foreground: #111111;
+    --popover: #ffffff;
+    --popover-foreground: #111111;
+    --primary: #5c4227;
+    --primary-foreground: #fdf8f3;
+    --secondary: #f3ede6;
+    --secondary-foreground: #2b1a0f;
+    --muted: #f3f0ed;
+    --muted-foreground: #67584b;
+    --accent: #f6f1ec;
+    --accent-foreground: #2b1a0f;
+    --destructive: #b3261e;
+    --destructive-foreground: #ffffff;
+    --border: #e4d7c9;
+    --input: #e4d7c9;
+    --ring: #5c4227;
+    --chart-1: #f4a259;
+    --chart-2: #5eaaa8;
+    --chart-3: #9e6f21;
+    --chart-4: #d4af37;
+    --chart-5: #e07a5f;
+    --radius: 0.5rem;
+  }
+
   /* Zerar estilos padrões */
   *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    @apply border-border;
   }
 
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 @layer utilities {

@@ -88,37 +88,46 @@ export default function StartPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-4 py-6">
       <header className="space-y-4">
-        <NavigationMenu className="w-full">
-          <NavigationMenuList className="w-full flex-wrap justify-between gap-2 p-2">
-            <NavigationMenuItem>
-              <NavigationMenuLink className={navigationMenuTriggerStyle} href="#">
-                Overview
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink className={navigationMenuTriggerStyle} href="#">
-                Mesas
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+        <div className="flex items-center gap-4">
+          <div className="leading-tight text-foreground">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              Restaurante
+            </p>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Marinheiros</p>
+          </div>
+          <NavigationMenu className="w-full">
+            <NavigationMenuList className="w-full">
+              <NavigationMenuItem>
+                <NavigationMenuLink className={navigationMenuTriggerStyle} href="#">
+                  Overview
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink className={navigationMenuTriggerStyle} href="#">
+                  Mesas
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
       </header>
 
       <section className="space-y-3">
-          <Button className="h-16 w-full p-0 text-left text-primary-foreground">
+        <div className="flex justify-center">
+          <Button className="h-16 w-[92%] p-0 text-left text-primary-foreground">
             <span className="flex h-full w-full overflow-hidden rounded-md bg-primary">
               <span className="flex basis-[70%] items-center gap-3 px-6">
                 <Plus className="h-5 w-5" />
                 <span className="text-lg font-semibold tracking-wide">
-                  + Adicionar pedido
+                  Adicionar pedido
                 </span>
               </span>
               <span className="flex basis-[30%] items-center justify-center gap-2 border-l border-white/20 bg-primary/90 text-sm font-medium uppercase">
-                <QrCode className="h-5 w-5" />
-                QR code
+                <QrCode className="h-6 w-6" />
               </span>
             </span>
           </Button>
+          </div>
       </section>
 
       <section className="space-y-4">
@@ -134,16 +143,12 @@ export default function StartPage() {
           {openTables.map((table) => (
             <Card key={table.id}>
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Identificação
-                  </p>
-                  <p className="text-xl font-semibold text-foreground">{table.label}</p>
-                </div>
                 <div className="flex w-full items-center gap-3 sm:w-auto">
-                  <Button className="flex-1 items-center gap-2 sm:flex-none sm:px-6">
+                  <div className="w-1/2">
+                <p className="text-xl font-semibold text-foreground">{table.label}</p>
+                </div>
+                  <Button className="flex-1 items-center gap-2 sm:flex-none sm:px-6 max-w-12">
                     <Plus className="h-4 w-4" />
-                    Novo pedido
                   </Button>
                   <Button variant="outline" size="sm" className="flex-1 sm:flex-none sm:px-4">
                     Fechar mesa
@@ -159,7 +164,9 @@ export default function StartPage() {
         <Accordion type="single" collapsible className="w-full rounded-lg border">
           <AccordionItem value="finished">
             <AccordionTrigger>
+              <div className="ml-4 flex items-center justify-between">
               Mesas finalizadas ({finishedTables.length})
+              </div>
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-3">
