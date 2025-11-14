@@ -1,6 +1,5 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { List, ListItem, ListItemText } from '@mui/material'; // Add this import
 import Counter from './Counter';
 import HandleOrderItem from './HandleOrderItem'; // Updated import to match the casing
 import { useOrderContext } from '../context/OrderContext';
@@ -18,46 +17,43 @@ function OrderList() {
       }
 
     return (
-        <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
-            {dishes.map((dish, index) => (
-            <ListItem
-                key={index}
-                sx={{backgroundColor: '#5c422710', marginBottom : '10px', borderRadius : '10px', width: '100%', boxShadow: '3px 3px 5px 0px #5c422730', padding : '5px' } }
-                disableGutters
-            >
-                <div className='flex w-full max-w-[100%]'>
-                    <div className='flex justify-center items-center'>
-                        <HandleOrderItem dishIndex={index} />
-                    </div>
+        <div className="space-y-3">
+            {dishes.map((dish, index) => {
+                const dishKey = dish.unique_id ? `${dish.unique_id}-${index}` : `${index}`;
+                return (
+                    <div
+                        key={dishKey}
+                        className="w-full rounded-xl border border-[#5c4227]/20 bg-white/90 p-4 shadow-sm"
+                    >
+                        <div className="flex flex-wrap items-center gap-4">
+                            <div className="flex flex-col items-center gap-2">
+                                <HandleOrderItem dishIndex={index} />
+                            </div>
 
-                    <div className='flex flex-grow pl-5 pr-5 items-center flex-grow'>
-                    <ListItemText primary={<span className="text-[25px] text-[#5c4227] font-bold">{dish.amount}</span>} />    
-                    </div> 
+                            <div className="flex items-center gap-3 text-[#5c4227]">
+                                <span className="text-3xl font-bold">{dish.amount}</span>
+                                <div className="flex flex-col">
+                                    <span className="text-lg font-semibold">{dish.name}</span>
+                                    {dish.note && (
+                                        <span className="text-sm text-[#5c422799]">
+                                            {dish.note}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
 
-                    {dish.note == null ? (
-                        <div className='flex items-center flex-grow'>
-                            <ListItemText primary={<span className="text-[20px] text-[#5c4227]">{dish.name}</span>} />
-                        </div>    
-                    )
-                    :
-                        <div className="flex flex-col justify-center w-full mt-1">
-                            <ListItemText 
-                            primary={<span className="text-[20px] text-[#5c4227]">{dish.name}</span>} 
-                            />
-                            <ListItemText 
-                            primary={<div className="text-[14px] text-[#5c422799] whitespace-normal">{dish.note}</div>} 
-                            />
+                            <div className="ml-auto flex items-center">
+                                <Counter
+                                    containerWidth={'30px'}
+                                    dishIndex={index}
+                                    dishDepartiment={dish.departiment}
+                                />
+                            </div>
                         </div>
-                
-                    }
-
-                    <div className='flex flex-grow justify-end w[40px]'>
-                        <Counter containerWidth={'30px'} dishIndex={index} dishDepartiment={dish.departiment}/>  
                     </div>
-                </div>
-            </ListItem>
-            ))}
-        </List>
+                )
+            })}
+        </div>
     );
 }
 

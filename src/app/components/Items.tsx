@@ -1,13 +1,9 @@
 import React, { useState } from "react";
 import menuItems from "../data/menuItems.json";
-import { ListItemText, ListItemButton, Dialog, DialogTitle, List, ListItem, Button } from "@mui/material";
-import { useOrderContext, Dish } from '../context/OrderContext';
 import CustomItem from '../components/CustomItem'
 import NoteDialog from "./NoteDialog";
-import CommentOrderDialog from "./CommentOrderDialog";
 
 export default function Items() {
-  const { setDishes } = useOrderContext();
   const [openDialog, setOpenDialog] = useState(false); // Controle do estado do diálogo
   const [menuSubItems, setMenuSubItems] = useState<MenuSubItemType[]>([]); // Subitens para o diálogo
 
@@ -50,28 +46,33 @@ export default function Items() {
 
   return (
     <>
-      <List>
-        <div className="grid grid-cols-2 gap-1 items-stretch">
-          {menuItem.map((menuItem: MenuItem, index) => (
-            <ListItem key={index} disablePadding>
-              <ListItemButton
-                onClick={() => handleClickOpen(menuItem.items, menuItem.category)} // Abre o diálogo com os subitens
-                sx={{
-                  color: "#fff",
-                  backgroundColor: "#56422d",
-                  borderLeft: `7px ${menuItem.color} solid`,
-                  borderRadius: "5px",
-                  boxShadow: "3px 3px 5px 0px #5c422730",
-                  "&:hover": { backgroundColor: "#56422d" },
-                }}
-              >
-                <ListItemText primary={menuItem.category} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+      <div className="grid grid-cols-2 gap-2 items-stretch">
+        {menuItem.map((menuItem: MenuItem, index) => (
+          <button
+              key={index}
+              type="button"
+              onClick={() => handleClickOpen(menuItem.items, menuItem.category)}
+              className="group flex w-full items-center gap-3 rounded-2xl border border-[#ead9c7] bg-white p-4 text-left shadow-sm transition hover:border-[#c08a55] hover:shadow"
+            >
+              <span
+                className="h-5 w-1 rounded-full"
+                style={{ backgroundColor: menuItem.color }}
+              />
+              <div className="flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-base font-semibold text-[#2b160c]">
+                      {menuItem.category}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </button>
+        ))}
+        <div className="col-span-2 sm:col-span-1">
           <CustomItem />
         </div>
-      </List>
+      </div>
       
       <NoteDialog menuSubItems={menuSubItems} openDialog={openDialog} onClose={handleClose}/>
     </>

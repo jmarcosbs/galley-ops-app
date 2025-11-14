@@ -1,18 +1,15 @@
 import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
-Dialog,
-DialogTitle,
-DialogContent,
-DialogActions,
-Button,
-TextField,
-FormControl,
-InputLabel,
-Select,
-MenuItem,
-FormHelperText
-} from "@mui/material";
-import { ListItemText, ListItemButton } from "@mui/material";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useOrderContext, Dish } from '../context/OrderContext';
 
 export default function CustomItem() {
@@ -54,67 +51,93 @@ const handleClickSubItem = (name : string, department : string, note : string) =
 };
 
 return (
-<div className="ml-0 mt-2">
-	<ListItemButton
-	onClick={handleClickOpen}
-	sx={{
-		backgroundColor: "#362616",
-		color: "#fff",
-		borderRadius: "5px",
-		boxShadow: "3px 3px 5px 0px #5c422730",
-		"&:hover": { backgroundColor: "#24190f" },
-	}}
+<>
+	<button
+		type="button"
+		onClick={handleClickOpen}
+		className="col-span-2 flex w-full items-center gap-3 rounded-2xl border border-[#ead9c7] bg-white p-4 text-left shadow-sm transition hover:border-[#c08a55] hover:shadow sm:col-span-1"
 	>
-	<ListItemText primary="📝 Personalizado" />
-	</ListItemButton>
+		<span
+			className="h-5 w-1 rounded-full"
+			style={{ backgroundColor: '#5c4227' }}
+		/>
+		<div>
+			<p className="text-base font-semibold text-[#2b160c]">Personalizado</p>
+			<p className="text-xs text-[#5c4227]/70">Adicionar item manualmente</p>
+		</div>
+	</button>
 
-	<Dialog open={open} onClose={handleClose}>
-	<DialogTitle>Pedido personalizado</DialogTitle>
-	<DialogContent>
-		<FormControl fullWidth margin="dense">
-		<TextField
-			required
-			label="Nome do pedido"
-			variant="outlined"
-			value={nameValue}
-			onChange={(e) => setNameValue(e.target.value)}
-		/>
-		</FormControl>
-		<FormControl fullWidth margin="dense" required variant="outlined">
-		<InputLabel>Selecione o destino</InputLabel>
-		<Select
-			value={selectValue}
-			onChange={(e) => setSelectValue(e.target.value)}
-			label="Selecione uma Categoria"
-		>
-			<MenuItem value="cozinha">Cozinha</MenuItem>
-			<MenuItem value="copa">Copa</MenuItem>
-		</Select>
-		<FormHelperText>Pra onde vai o pedido?</FormHelperText>
-		</FormControl>
-		<FormControl fullWidth margin="dense">
-		<TextField
-			required
-			label="Observação"
-			variant="outlined"
-			value={noteValue}
-			onChange={(e) => setNoteValue(e.target.value)}
-		/>
-		</FormControl>
-	</DialogContent>
-	<DialogActions>
-		<Button sx={{ color: "#5c422799", fontWeight: "bold" }} onClick={handleClose}>
-		Cancelar
-		</Button>
-		<Button
-		sx={{ color: "#5c4227", fontWeight: "bold" }}
-		onClick={() => (handleClickSubItem(nameValue, selectValue, noteValue))}
-		disabled={!nameValue || !selectValue} // Desabilita o botão se os campos estiverem vazios
-		>
-		Adicionar
-		</Button>
-	</DialogActions>
+	<Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
+		<DialogContent>
+			<DialogHeader>
+				<DialogTitle>Pedido personalizado</DialogTitle>
+			</DialogHeader>
+
+			<div className="space-y-4">
+				<div className="space-y-2">
+					<Label htmlFor="custom-name" className="text-[#5c4227]">
+						Nome do pedido
+					</Label>
+					<Input
+						id="custom-name"
+						required
+						value={nameValue}
+						onChange={(e) => setNameValue(e.target.value)}
+						placeholder="Ex.: Risoto especial"
+						className="border-[#5c4227]/30 focus-visible:ring-[#5c4227]"
+					/>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="custom-destination" className="text-[#5c4227]">
+						Selecione o destino
+					</Label>
+					<select
+						id="custom-destination"
+						required
+						value={selectValue}
+						onChange={(e) => setSelectValue(e.target.value)}
+						className="h-10 w-full rounded-md border border-[#5c4227]/30 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5c4227]"
+					>
+						<option value="" disabled>
+							Escolha uma opção
+						</option>
+						<option value="cozinha">Cozinha</option>
+						<option value="copa">Copa</option>
+					</select>
+					<p className="text-xs text-muted-foreground">Pra onde vai o pedido?</p>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="custom-note" className="text-[#5c4227]">
+						Observação
+					</Label>
+					<Textarea
+						id="custom-note"
+						required
+						value={noteValue}
+						onChange={(e) => setNoteValue(e.target.value)}
+						placeholder="Detalhes adicionais"
+						className="border-[#5c4227]/30 focus-visible:ring-[#5c4227]"
+					/>
+				</div>
+			</div>
+
+			<DialogFooter>
+				<Button type="button" variant="outline" onClick={handleClose}>
+					Cancelar
+				</Button>
+				<Button
+					type="button"
+					className="bg-[#5c4227] hover:bg-[#5c4227]/90"
+					onClick={() => handleClickSubItem(nameValue, selectValue, noteValue)}
+					disabled={!nameValue || !selectValue}
+				>
+					Adicionar
+				</Button>
+			</DialogFooter>
+		</DialogContent>
 	</Dialog>
-</div>
+</>
 );
 }

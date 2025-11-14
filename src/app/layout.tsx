@@ -1,5 +1,7 @@
 import "./globals.css";
+import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
+import LayoutShell from "@/app/components/LayoutShell";
 
 const APP_NAME = "Marinheiros Pedidos";
 const APP_DEFAULT_TITLE = "Marinheiros Pedidos";
@@ -18,7 +20,6 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: APP_DEFAULT_TITLE,
-    // startUpImage: [],
   },
   formatDetection: {
     telephone: false,
@@ -52,7 +53,7 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="pt-br">
@@ -64,12 +65,9 @@ export default function RootLayout({
           content="black-translucent"
         />
       </head>
-      <body
-        // className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-          {children}
-
-      </body> 
+      <body>
+        <LayoutShell>{children}</LayoutShell>
+      </body>
     </html>
   );
 }

@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'; // {{ edit_1 }}
-import { Button } from '@mui/material'
 import { useState } from 'react'
 import Items from './Items'
+import { Button } from '@/components/ui/button'
 
 export default function ShowItemsButton() {
 
@@ -12,8 +12,7 @@ export default function ShowItemsButton() {
     return (
         <>
             <Button
-                variant='contained'
-                sx={{padding: "10px", width: "100%", backgroundColor: '#5c4227'}}
+                className="w-full bg-[#5c4227] py-3 text-base font-semibold hover:bg-[#5c4227]/90"
                 onClick={() => setShowItems(!showItems)} // Corrigido para alternar o estado
             >
                 {!showItems? 'Adicionar Item' : 'Esconder Items'}

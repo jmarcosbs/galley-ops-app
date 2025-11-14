@@ -1,9 +1,9 @@
 'use client'
 
-import { ButtonGroup, Button } from '@mui/material';
-import { Remove, Add } from '@mui/icons-material';
 import { useState } from 'react';
 import { Dish, useOrderContext } from '../context/OrderContext';
+import { Button } from '@/components/ui/button';
+import { Minus, Plus } from 'lucide-react';
 
 interface CounterProps {
     containerWidth: string;
@@ -41,25 +41,29 @@ export default function Counter({ containerWidth, dishIndex, dishDepartiment }: 
         );
     };
 
+    const isKitchen = dishDepartiment === "cozinha";
+    const minValue = isKitchen ? 0.5 : 1;
+    const disableDecrement = (count ?? 0) <= minValue;
+
     return (
-        <div className='flex flex-row items-center ml-1 mr-1'>
-            <ButtonGroup orientation="vertical" sx={{ width: containerWidth }}>
+        <div className="flex flex-row items-center" style={{ width: containerWidth }}>
+            <div className="flex w-full flex-col overflow-hidden rounded-md border border-[#5c4227]/30 bg-[#5c4227]/10">
                 <Button
+                    type="button"
                     onClick={incrementCount}
-                    variant='contained'
-                    sx={{ backgroundColor: '#5c422795', padding: '10px' }}
+                    className="h-9 w-full rounded-none border-b border-[#5c4227]/20 bg-[#5c4227]/20 text-[#5c4227] hover:bg-[#5c4227]/30"
                 >
-                    <Add fontSize="small" />
+                    <Plus className="h-4 w-4" />
                 </Button>
                 <Button
-                    variant='contained'
+                    type="button"
                     onClick={decrementCount}
-                    disabled={dishDepartiment == "cozinha" ? (count ? count : 0) <= 0.5 : (count ? count : 0) <= 1}
-                    sx={{ backgroundColor: '#5c422795', padding: '10px' }}
+                    disabled={disableDecrement}
+                    className="h-9 w-full rounded-none bg-[#5c4227]/20 text-[#5c4227] hover:bg-[#5c4227]/30 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                    <Remove fontSize="small" />
+                    <Minus className="h-4 w-4" />
                 </Button>
-            </ButtonGroup>
+            </div>
         </div>
     );
 }

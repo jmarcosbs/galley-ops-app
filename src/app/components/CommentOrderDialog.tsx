@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions, Button, Radio, RadioGroup, FormControlLabel, FormLabel } from '@mui/material';
-import { useOrderContext, Dish } from '../context/OrderContext';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useOrderContext } from '../context/OrderContext';
 import menuItems from "../data/menuItems.json";
+import { cn } from '@/lib/utils';
 
 interface Item {
     id: number;
@@ -13,7 +24,7 @@ interface Item {
 interface Option {
     category: string;
     departiment: string;
-    options: string[][]; // Aqui será um array de arrays de strings
+    options: string[][];
     color: string;
     items: Item[];
 }
@@ -40,26 +51,22 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
         }
     }, [props.openDialog, props.note]);
 
-    const handleNoteChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleNoteChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setTempNote(event.target.value); // Atualiza a observação temporária
     };
 
     const handleAddNote = () => {
-        // Adiciona as opções selecionadas ao tempNote
         const finalNote = tempNote + (Object.keys(selectedOptions).length > 0 
             ? ` - ${Object.values(selectedOptions).join(' e ')}` 
             : '');
         
         if (finalNote.length > 0) {
             setDishes((prevDishes) =>
-                prevDishes.map((dish, index) =>
+                prevDishes.map((dish) =>
                     dish.unique_id === props.dishUniqueId ? { ...dish, note: finalNote } : dish
                 )
             );
         }
-
-        console.log('Observação adicionada:', finalNote); // Log para depuração
-        console.log(dishes); // Log para depuração
 
         props.onClose();
         setTempNote('');
@@ -76,69 +83,86 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
     }
 
     function getDishId(): number {
-        const dish = dishes.find((dish, index) => dish.unique_id === props.dishUniqueId);
+        const dish = dishes.find((dish) => dish.unique_id === props.dishUniqueId);
         return dish ? dish.id : 0;
     }
 
     const itemOptions: string[][] | null = getCategoryByItemId(getDishId());
 
-    // Função para atualizar a opção selecionada
-    const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>, option: string, groupIndex: number) => {
+    const handleOptionChange = (option: string, groupIndex: number) => {
         setSelectedOptions(prevSelected => ({
             ...prevSelected,
-            [groupIndex]: option, // Armazena a seleção para cada grupo de rádio
+            [groupIndex]: option, // Armazena a seleção para cada grupo
         }));
     };
 
     return (
-        <Dialog open={props.openDialog} onClose={props.onClose}>
-            <DialogTitle>Adicionar observação</DialogTitle>
+        <Dialog open={props.openDialog} onOpenChange={(isOpen) => (!isOpen ? props.onClose() : null)}>
             <DialogContent>
-                <DialogContentText>
-                    Adicione uma observação no item.
-                </DialogContentText>
+                <DialogHeader>
+                    <DialogTitle>Adicionar observação</DialogTitle>
+                    <DialogDescription>
+                        Adicione instruções e selecione as opções necessárias.
+                    </DialogDescription>
+                </DialogHeader>
 
-                <TextField
-                    autoFocus={false}
-                    required
-                    margin="dense"
-                    id="note"
-                    name="note"
-                    label="Observação"
-                    type="text"
-                    fullWidth
-                    variant="standard"
-                    value={tempNote}
-                    onChange={handleNoteChange}
-                />
-
-                {itemOptions?.map((option, groupIndex) => (
-                    <div className="mt-[20px]" key={groupIndex}>
-                        <FormLabel>{`Opção ${groupIndex + 1}`}</FormLabel>
-                        <RadioGroup
-                            aria-labelledby="demo-radio-buttons-group-label"
-                            value={selectedOptions[groupIndex] || ""} // Valor atual selecionado
-                            onChange={(event) => handleOptionChange(event, event.target.value, groupIndex)} // Atualiza a seleção para o grupo
-                            name={`radio-group-${groupIndex}`}
-                            className="flex flex-row mt-[5px]"
-                        >
-                            {option.map((item, idx) => (
-                                <FormControlLabel
-                                    key={idx}
-                                    value={item}
-                                    control={<Radio />}
-                                    label={item}
-                                />
-                            ))}
-                        </RadioGroup>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="item-note" className="text-[#5c4227]">
+                            Observação
+                        </Label>
+                        <Textarea
+                            id="item-note"
+                            required
+                            value={tempNote}
+                            onChange={handleNoteChange}
+                            placeholder="Ex.: sem cebola"
+                            className="min-h-[80px] border-[#5c4227]/30 focus-visible:ring-[#5c4227]"
+                        />
                     </div>
-                ))}
 
+                    {itemOptions?.map((option, groupIndex) => (
+                        <div className="space-y-2" key={groupIndex}>
+                            <p className="text-sm font-medium text-[#5c4227]">
+                                {`Opção ${groupIndex + 1}`}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {option.map((item, idx) => {
+                                    const isSelected = selectedOptions[groupIndex] === item;
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={`${item}-${idx}`}
+                                            onClick={() => handleOptionChange(item, groupIndex)}
+                                            className={cn(
+                                                "rounded-full border px-3 py-1 text-sm font-medium transition",
+                                                isSelected
+                                                    ? "border-[#5c4227] bg-[#5c4227] text-white"
+                                                    : "border-[#5c4227]/30 text-[#5c4227] hover:bg-[#f4ece3]"
+                                            )}
+                                        >
+                                            {item}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={props.onClose}>
+                        Sem observação
+                    </Button>
+                    <Button
+                        type="button"
+                        className="bg-[#5c4227] hover:bg-[#5c4227]/90"
+                        onClick={handleAddNote}
+                    >
+                        Adicionar
+                    </Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button sx={{ color: '#5c422799', fontWeight: 'bold' }} onClick={props.onClose}>Sem observação</Button>
-                <Button sx={{ color: '#5c4227', fontWeight: 'bold' }} onClick={handleAddNote}>Adicionar</Button>
-            </DialogActions>
         </Dialog>
     );
 }

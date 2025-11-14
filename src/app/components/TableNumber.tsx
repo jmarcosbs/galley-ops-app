@@ -1,81 +1,75 @@
 'use client';
-import '@/app/globals.css';
-import { TextField, ToggleButton } from "@mui/material";
-import Waiter from '@/app/components/Waiter';
-import { useState, useEffect } from 'react';
+
+import { useCallback } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { AddOrderDialog } from '@/app/components/AddOrderDialog';
 import { useOrderContext } from '../context/OrderContext';
+import { QrCode } from 'lucide-react';
 
 export default function TableNumber() {
-    const { setTableNumber, isOutside, setIsOutside } = useOrderContext();
-    const [value, setValue] = useState<string | null>('');
-    const [isLoaded, setIsLoaded] = useState(false); // Novo estado para verificar carregamento
+  const { tableNumber, setTableNumber } = useOrderContext();
 
-    useEffect(() => {
-        // Acessa o localStorage apenas no cliente
-        const storagedTableNumber = localStorage.getItem('tableNumber');
-        if (storagedTableNumber) {
-            setValue(storagedTableNumber);
-        }
-
-        // Busca o valor inicial de isOutside do localStorage e configura o estado
-        const storagedIsOutside = localStorage.getItem('isOutside');
-        const isOutsideToBoolean = storagedIsOutside === 'true';
-        setIsOutside(isOutsideToBoolean);
-        setIsLoaded(true); // Define como carregado após o valor ser definido
-    }, []);
-
-    useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('isOutside', String(isOutside));
-        }
-    }, [isOutside, isLoaded]);
-
-    const handleTableNumberChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newTableNumber = event.target.value;
-        setValue(newTableNumber);
-        setTableNumber(parseInt(newTableNumber));
-        localStorage.setItem('tableNumber', newTableNumber);
-    };
-
-    if (!isLoaded) {
-        return null; // Evita renderizar até estar carregado
+  const handleTableNumberChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newTableNumber = event.target.value;
+    if (!newTableNumber) {
+      setTableNumber(0);
+      return;
     }
+    const parsedNumber = parseInt(newTableNumber, 10);
+    if (!Number.isNaN(parsedNumber)) {
+      setTableNumber(parsedNumber);
+    }
+  };
 
-    return (
-        <div className="flex items-center justify-between">
-            <Waiter />
-            <div>
-                <TextField
-                    id="outlined-basic"
-                    label="Mesa"
-                    variant="outlined"
-                    type="number"
-                    value={value}
-                    onChange={handleTableNumberChange}
-                    sx={{ width: '100px', '& .MuiInputLabel-root.Mui-focused': { color: '#5c4227' } }}
-                />
-                <ToggleButton
-                    value="check"
-                    selected={isOutside}
-                    onClick={() => setIsOutside(!isOutside)}
-                    sx={{
-                        height: "56px",
-                        '&.Mui-selected': {
-                            color: 'white',
-                            backgroundColor: '#5c4227',
-                            '&:hover': { backgroundColor: '#5c4227' },
-                        },
-                        fontWeight: 'bold',
-                        '&:not(.Mui-selected)': {
-                            color: '#5c4227',
-                            backgroundColor: '#ebe2d8',
-                            '&:hover': { backgroundColor: '#ebe2d8' },
-                        }
-                    }}
-                >
-                    Rua
-                </ToggleButton>
-            </div>
-        </div>
-    );
+  const handleQrConfirm = useCallback(
+    (code: string) => {
+      const parsedNumber = parseInt(code, 10);
+      if (!Number.isNaN(parsedNumber)) {
+        setTableNumber(parsedNumber);
+      }
+    },
+    [setTableNumber],
+  );
+
+  const displayValue = tableNumber === 0 ? '' : String(tableNumber);
+
+  return (
+    <section className="space-y-3">
+      <Label
+        htmlFor="table-number-input"
+        className="text-sm font-semibold uppercase tracking-wide text-[#5c4227]"
+      >
+        Número da mesa
+      </Label>
+      <div className="flex items-center gap-3">
+        <Input
+          id="table-number-input"
+          type="number"
+          inputMode="numeric"
+          value={displayValue}
+          onChange={handleTableNumberChange}
+          placeholder="Ex.: 12"
+          className="h-14 flex-1 text-lg font-semibold text-[#5c4227] focus-visible:ring-[#5c4227]"
+        />
+        <AddOrderDialog
+          onConfirm={handleQrConfirm}
+          trigger={
+            <Button
+              type="button"
+              className="h-14 w-32 gap-2 bg-[#5c4227] text-white hover:bg-[#4a331d]"
+              aria-label="Ler QR code da mesa"
+            >
+              <QrCode className="h-5 w-5" />
+              Ler QR
+            </Button>
+          }
+        />
+      </div>
+      <p className="text-xs text-[#5c4227]/70">
+        Defina a mesa antes de enviar o pedido.
+      </p>
+    </section>
+  );
 }

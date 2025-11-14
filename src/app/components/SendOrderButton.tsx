@@ -1,16 +1,30 @@
 'use client';
 import React, { useState } from 'react';
-import { Button, Backdrop, CircularProgress } from '@mui/material';
-import Dialog from './Dialog'; // Supondo que você tenha o componente Dialog
-import ErrorIcon from '@mui/icons-material/Error';
-import DoneOutlineIcon from '@mui/icons-material/DoneOutline';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useOrderContext } from '../context/OrderContext';
+
+interface FeedbackState {
+    open: boolean;
+    message: string;
+    type: 'success' | 'error';
+}
+
+type SendOrderResult = { success: true } | { success: false; message: string };
 
 export default function SendOrderButton() {
     const { waiter, tableNumber, isOutside, dishes, getOrderAsJson } = useOrderContext();
-    const [openDialog, setOpenDialog] = useState(false); // Controle de abertura do diálogo
-    const [openBackdrop, setOpenBackdrop] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string>('');
+    const [feedback, setFeedback] = useState<FeedbackState>({ open: false, message: '', type: 'success' });
+    const [isSending, setIsSending] = useState(false);
 
     const apiUrl = process.env.NEXT_PUBLIC_LOCAL_API_URL
     const fullUrl = `${apiUrl}/api/orders/`;    
@@ -25,19 +39,23 @@ export default function SendOrderButton() {
         if (dishes.length === 0) errors += 'Erro: Nenhum prato foi adicionado.\n';
 
         if (errors) {
-            setErrorMessage(errors); // Exibe a mensagem de erro
-            setOpenDialog(true); // Abre o diálogo de erro
+            setFeedback({ open: true, message: errors.trim(), type: 'error' });
+            return;
+        }
+
+        setIsSending(true);
+        const result = await sendOrder();
+        setIsSending(false);
+
+        if (result.success) {
+            setFeedback({ open: true, message: 'Pedido enviado com sucesso!', type: 'success' });
+            cleanApp();
         } else {
-            setOpenBackdrop(true)
-            if (await sendOrder()) {
-                setErrorMessage(""); // Exibe a mensagem de erro
-                setOpenDialog(true)
-                cleanApp()
-                setOpenBackdrop(false)
-            } else {
-                setOpenDialog(true)
-                setOpenBackdrop(false)
-            }
+            setFeedback({
+                open: true,
+                message: result.message || 'Erro ao enviar pedido.',
+                type: 'error',
+            });
         }
     };
 
@@ -50,7 +68,7 @@ export default function SendOrderButton() {
         
     };
 
-    const sendOrder = async () => {
+    const sendOrder = async (): Promise<SendOrderResult> => {
         const orderData = getOrderAsJson();
     
         try {
@@ -66,20 +84,16 @@ export default function SendOrderButton() {
             if (response.ok) {
                 const responseBody = await response.json(); // Extrai o corpo da resposta
                 console.log('Resposta da API:', responseBody); // Exibe o corpo da resposta no console
-                return true; // Retorna true caso a resposta seja bem-sucedida
-            } else {
-                const errorBody = await response.json(); // Extrai o corpo da resposta de erro
-                console.error('Erro na resposta da API:', errorBody);
-                setErrorMessage(`Erro: ${errorBody.detail || 'Erro desconhecido'}`); // Define a mensagem de erro
-                setOpenDialog(true); // Exibe o diálogo com a mensagem de erro
-                return false; // Retorna false em caso de erro
+                return { success: true } as const;
             }
+
+            const errorBody = await response.json(); // Extrai o corpo da resposta de erro
+            console.error('Erro na resposta da API:', errorBody);
+            return { success: false, message: `Erro: ${errorBody.detail || 'Erro desconhecido'}` } as const;
     
         } catch (error) {
             console.error('Erro ao enviar pedido:', error);
-            setErrorMessage('Erro ao enviar pedido: ' + error); // Exibe o erro
-            setOpenDialog(true); // Exibe o diálogo com a mensagem de erro
-            return false; // Retorna false em caso de falha
+            return { success: false, message: `Erro ao enviar pedido: ${error}` } as const;
         }
     };
 
@@ -87,33 +101,43 @@ export default function SendOrderButton() {
         <>
             <Button
                 onClick={handleSubmit}
-                aria-label="comment"
-                sx={{
-                    padding: "20px",
-                    width: "100%",
-                    backgroundColor: '#5c4227',
-                    color: '#fff',
-                    '&:hover': { backgroundColor: '#7d654b' }
-                }}
+                aria-label="Enviar pedido"
+                className="w-full bg-[#5c4227] py-9 text-lg font-semibold text-white hover:bg-[#5c4227]/90"
             >
                 Enviar pedido
             </Button>
 
-            {/* Exibe o diálogo apenas se houver erros */}
-            <Dialog
-                icon={errorMessage ? <ErrorIcon sx={{ color : '#ff0000', fontSize : '30px' }}/> : <DoneOutlineIcon sx={{ color : '#00a000', fontSize : '30px' }} />}
-                text={errorMessage ? errorMessage : 'Pedido Enviado com sucesso!'}
-                open={openDialog}
-                setOpen={setOpenDialog}
-                title={errorMessage ? 'Atenção' : 'Enviado!'}
-            />
+            <Dialog open={feedback.open} onOpenChange={(isOpen) => (!isOpen ? setFeedback((prev) => ({ ...prev, open: false })) : null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <div className="flex items-center gap-3 text-[#5c4227]">
+                            {feedback.type === 'error' ? (
+                                <AlertCircle className="h-6 w-6 text-red-500" />
+                            ) : (
+                                <CheckCircle2 className="h-6 w-6 text-green-500" />
+                            )}
+                            <DialogTitle>{feedback.type === 'error' ? 'Atenção' : 'Enviado!'}</DialogTitle>
+                        </div>
+                        <DialogDescription className="whitespace-pre-line text-[#5c4227]">
+                            {feedback.message}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button type="button" onClick={() => setFeedback((prev) => ({ ...prev, open: false }))}>
+                            Fechar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-            <Backdrop
-                sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
-                open={openBackdrop}
-                >
-                <CircularProgress color="inherit" />
-            </Backdrop>
+            {isSending && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="flex flex-col items-center gap-3 rounded-lg bg-white px-6 py-5 text-[#5c4227] shadow-lg">
+                        <Spinner size="lg" />
+                        <p className="text-sm font-medium">Enviando pedido...</p>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

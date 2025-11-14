@@ -1,6 +1,14 @@
-import { DeleteForever } from '@mui/icons-material'; 
+import { Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, DialogContentText } from '@mui/material'; 
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { useOrderContext } from '../context/OrderContext';
 
 interface DeleteOrderProps {
@@ -38,38 +46,33 @@ export default function DeleteOrder({ dishIndex } : DeleteOrderProps) {
 
 		<>
 		
-				<IconButton aria-label="delete">
-                    <DeleteForever onClick={handleClickOpen} sx={{ color: '#FF6961', fontSize: '30px' }} />
-                </IconButton>
-
-				<Dialog
-					open={open}
-					onClose={handleClose}
-					aria-labelledby="alert-dialog-title"
-					aria-describedby="alert-dialog-description"
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					aria-label="Remover item"
+					onClick={handleClickOpen}
+					className="text-red-500 hover:bg-red-50"
 				>
+                    <Trash2 className="h-5 w-5" />
+                </Button>
 
-				<DialogTitle id="alert-dialog-title">
-				{"Deseja excluir " + handleItemName() + '?'}
-				</DialogTitle>
-
-				<DialogContent>
-
-				<DialogContentText id="alert-dialog-description">
-					Confirme a exclusão do item
-				</DialogContentText>
-
-				</DialogContent>
-
-				<DialogActions>
-
-				<Button onClick={handleClose}>Não</Button>
-				<Button onClick={handleDeleteItem} sx={{color : '#ff0000'}} autoFocus>
-					Sim
-				</Button>
-
-				</DialogActions>
-			</Dialog>
+				<Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>{"Deseja excluir " + handleItemName() + '?'}</DialogTitle>
+							<DialogDescription>Confirme a exclusão do item</DialogDescription>
+						</DialogHeader>
+						<DialogFooter>
+							<Button type="button" variant="outline" onClick={handleClose}>
+								Não
+							</Button>
+							<Button type="button" variant="destructive" onClick={handleDeleteItem}>
+								Sim
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
 		
 		</>
 

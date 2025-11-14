@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, DialogContentText, TextField } from '@mui/material'; 
-import { Comment } from '@mui/icons-material'; 
+import { MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useOrderContext } from '../context/OrderContext';
 import CommentOrderDialog from './CommentOrderDialog';
 
@@ -12,21 +12,7 @@ export default function CommentOrder({ dishUniqueId } : CommentOrderProps) {
 
     const [open, setOpen] = useState(false);
     const [tempNote, setTempNote] = useState(''); // Estado para a observação temporária
-    const { dishes, setDishes } = useOrderContext();
-
-    const handleNoteChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setTempNote(event.target.value); // Atualiza a observação temporária
-    };
-
-    const handleAddNote = () => {
-        setDishes(() =>
-            dishes.map((dish) => 
-                dish.unique_id === dishUniqueId ? { ...dish, note: tempNote } : dish
-            )
-        );
-
-        setOpen(false);
-    };
+    const { dishes } = useOrderContext();
 
     const handleClickOpen = () => { 
         const dishIndex = dishes.findIndex(dish => dish.unique_id === dishUniqueId); // Encontra o índice do prato
@@ -42,9 +28,16 @@ export default function CommentOrder({ dishUniqueId } : CommentOrderProps) {
 
     return (
         <>
-            <IconButton aria-label="comment" onClick={handleClickOpen}>
-                <Comment sx={{ fontSize: '30px', color: '#5c4227' }} />
-            </IconButton>
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Adicionar observação"
+                onClick={handleClickOpen}
+                className="text-[#5c4227] hover:bg-[#5c4227]/10"
+            >
+                <MessageCircle className="h-5 w-5" />
+            </Button>
 
             <CommentOrderDialog dishUniqueId={dishUniqueId} openDialog={open} onClose={handleClose} note={tempNote}/>
         </>
