@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOrderContext } from '../context/OrderContext';
+import { useOrderContext } from '../../context/OrderContext';
 import CommentOrderDialog from './CommentOrderDialog';
 
 interface CommentOrderProps {

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Counter from './Counter';
 import HandleOrderItem from './HandleOrderItem'; // Updated import to match the casing
-import { useOrderContext } from '../context/OrderContext';
+import { useOrderContext } from '../../context/OrderContext';
 
 function OrderList() {
 

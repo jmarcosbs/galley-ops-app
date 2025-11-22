@@ -9,7 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { useOrderContext } from '../context/OrderContext';
+import { useOrderContext } from '../../context/OrderContext';
 
 interface DeleteOrderProps {
     dishIndex : number;

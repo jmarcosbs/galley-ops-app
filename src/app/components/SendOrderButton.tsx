@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useOrderContext } from '../context/OrderContext';
+import { useOrderContext } from '../../context/OrderContext';
 
 interface FeedbackState {
     open: boolean;

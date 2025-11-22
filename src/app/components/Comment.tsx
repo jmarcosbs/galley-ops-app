@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useOrderContext } from '../context/OrderContext';
+import { useOrderContext } from '../../context/OrderContext';
 
 
 export default function CommentOrder() {

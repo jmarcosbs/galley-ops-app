@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Dish, useOrderContext } from '../context/OrderContext';
+import { Dish, useOrderContext } from '../../context/OrderContext';
 import menuItems from '../data/menuItems.json';
 import { cn } from '@/lib/utils';
 

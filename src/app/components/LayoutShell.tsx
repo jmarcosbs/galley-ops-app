@@ -16,8 +16,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { TablesBoard } from '@/app/components/TablesBoard';
-import { OrderProvider } from '@/app/context/OrderContext';
+import { OrderProvider } from '@/context/OrderContext';
 import { X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import {  AuthProvider } from '@/context/AuthContext';
+import { Toaster } from 'sonner';
 
 type LayoutShellProps = {
   children: ReactNode;
@@ -26,6 +29,8 @@ type LayoutShellProps = {
 function LayoutShellContent({ children }: LayoutShellProps) {
   const [loading, setLoading] = useState(true);
   const [tablesOpen, setTablesOpen] = useState(false);
+  const pathname = usePathname();
+  const isLoginPage = pathname === '/login';
 
   useEffect(() => {
     setLoading(false);
@@ -37,6 +42,10 @@ function LayoutShellContent({ children }: LayoutShellProps) {
         <Spinner size="lg" />
       </div>
     );
+  }
+
+  if (isLoginPage) {
+    return <main className="min-h-screen">{children}</main>;
   }
 
   return (
@@ -103,8 +112,12 @@ function LayoutShellContent({ children }: LayoutShellProps) {
 
 export default function LayoutShell({ children }: LayoutShellProps) {
   return (
+    <AuthProvider>
     <OrderProvider>
       <LayoutShellContent>{children}</LayoutShellContent>
+      <Toaster position="top-center" richColors/>
     </OrderProvider>
+    </AuthProvider>
+      
   );
 }

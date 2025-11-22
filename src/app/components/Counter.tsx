@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { Dish, useOrderContext } from '../context/OrderContext';
+import { Dish, useOrderContext } from '../../context/OrderContext';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
 

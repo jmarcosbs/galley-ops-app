@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AddOrderDialog } from '@/app/components/AddOrderDialog';
-import { useOrderContext } from '../context/OrderContext';
+import { useOrderContext } from '../../context/OrderContext';
 import { QrCode } from 'lucide-react';
 
 export default function TableNumber() {
