@@ -2,6 +2,7 @@
 
 import { createContext, useEffect, useState } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
+import { useUtils } from "@/app/hooks/useUtils";
 
 
 enum AuthStatus {
@@ -17,27 +18,29 @@ interface AuthContextProps {
 export const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const {  login, makeAuthenticatedRequest, redirectToLogin, getNewAccessToken, accessToken, refreshToken, logout } = useAuth();
-
+    const {  redirectToLogin, getNewAccessToken, accessToken, refreshToken, logout } = useAuth();
+    const { showNotification } = useUtils();
     const [authStatus, setAuthStatus] = useState<AuthStatus>(AuthStatus.LOADING);
 
     useEffect(() => {
         let cancelled = false;
         const ensureAuthenticated = async () => {
             const accessExpiration = Number(localStorage.getItem("accessExpiration") || 0)
-            const nearExpiry = !accessToken || accessExpiration < Date.now() + 10_000;
+            const isExpired = !accessToken || accessExpiration < Date.now() + 10_000;
 
             if (!refreshToken) {
                 setAuthStatus(AuthStatus.UNAUTHENTICATED);
+                showNotification('Sessão expirada', 'error');
                 return;
             }
 
-            if (nearExpiry) {
+            if (isExpired) {
                 try {
                     await getNewAccessToken(refreshToken);
                 } catch (error) {
                     if (!cancelled) {
                         setAuthStatus(AuthStatus.UNAUTHENTICATED);
+                        showNotification('Sessão expirada', 'error');
                         logout();
                     }
                     return;
@@ -52,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => {
             cancelled = true;
         }
-    }, [getNewAccessToken, accessToken, refreshToken, logout]);
+    }, [accessToken, refreshToken, logout]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (authStatus === AuthStatus.UNAUTHENTICATED) {

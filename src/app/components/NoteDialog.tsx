@@ -11,16 +11,16 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Dish, useOrderContext } from '../../context/OrderContext';
-import menuItems from '../data/menuItems.json';
 import { cn } from '@/lib/utils';
 
 type MenuSubItem = {
-  id: number;
+  id: string;
   dishUniqueId: string;
   name: string;
   departiment: string;
   description?: string;
   category: string;
+  optionGroups: string[][];
 };
 
 type NoteDialogProps = {
@@ -35,19 +35,6 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
   const [quantity, setQuantity] = useState<number>(1);
   const [optionGroups, setOptionGroups] = useState<string[][]>([]);
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
-
-  const getOptionsForItem = (itemId: number) => {
-    const menu = menuItems.menu as Array<{
-      options?: string[][];
-      items: Array<{ id: number }>;
-    }>;
-    for (const section of menu) {
-      if (section.items.some((item) => item.id === itemId)) {
-        return section.options ?? [];
-      }
-    }
-    return [];
-  };
 
   useEffect(() => {
     if (!openDialog) {
@@ -64,10 +51,9 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
   const handleSelectItem = (item: MenuSubItem) => {
     setSelectedItem(item);
     setQuantity(1);
-    const groups = getOptionsForItem(item.id);
-    setOptionGroups(groups);
+    setOptionGroups(item.optionGroups ?? []);
     if (item.departiment === 'cozinha') {
-      const defaults = groups.reduce<Record<number, string>>((acc, group, index) => {
+      const defaults = item.optionGroups.reduce<Record<number, string>>((acc, group, index) => {
         if (group.length > 0) acc[index] = group[0];
         return acc;
       }, {});
@@ -96,6 +82,7 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
       amount: quantity,
       note: optionsNote.length ? optionsNote : null,
       category: selectedItem.category,
+      optionGroups,
     };
 
     setDishes((prevDishes) => {

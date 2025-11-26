@@ -11,25 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useOrderContext } from '../../context/OrderContext';
-import menuItems from "../data/menuItems.json";
 import { cn } from '@/lib/utils';
-
-interface Item {
-    id: number;
-    name: string;
-    departiment: string;
-    description?: string;
-}
-
-interface Option {
-    category: string;
-    departiment: string;
-    options: string[][];
-    color: string;
-    items: Item[];
-}
-
-const menu: Option[] = menuItems["menu"];
 
 interface CommentOrderProps {
     dishUniqueId: string;
@@ -43,6 +25,7 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
     const [tempNote, setTempNote] = useState(''); // Estado para a observação temporária
     const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({}); // Estado para armazenar as opções selecionadas por grupo
     const { dishes, setDishes } = useOrderContext();
+    const dish = dishes.find((dish) => dish.unique_id === props.dishUniqueId);
 
     useEffect(() => {
         if (props.openDialog) {
@@ -72,22 +55,7 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
         setTempNote('');
     };
 
-    function getCategoryByItemId(itemId: number): string[][] | null {
-        for (const option of menu) {
-            const item = option.items.find(item => item.id === itemId);
-            if (item) {
-                return option.options;
-            }
-        }
-        return null; // Retorna null caso o item não seja encontrado
-    }
-
-    function getDishId(): number {
-        const dish = dishes.find((dish) => dish.unique_id === props.dishUniqueId);
-        return dish ? dish.id : 0;
-    }
-
-    const itemOptions: string[][] | null = getCategoryByItemId(getDishId());
+    const itemOptions: string[][] = dish?.optionGroups ?? [];
 
     const handleOptionChange = (option: string, groupIndex: number) => {
         setSelectedOptions(prevSelected => ({

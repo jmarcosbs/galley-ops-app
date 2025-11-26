@@ -2,13 +2,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Dish = {
-  id: number;
+  id: string;
   unique_id: string;
   name: string | null;
   departiment: string | null;
   amount: number | null;
   note: string | null;
   category: string | null;
+  optionGroups?: string[][];
 };
 
 interface OrderContextProps {
@@ -28,7 +29,7 @@ interface OrderContextProps {
 interface GroupedDishesAcc {
   [key: string]: {
       dish: {
-          id: number;
+          id: string;
           department: string | null;
           dish_name: string | null;
       };

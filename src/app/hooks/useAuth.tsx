@@ -86,9 +86,9 @@ export const useAuth = () => {
 
             const data = await response.json()
 
-            console.log(data);
-
             storeAuthTokens(data.access, data.refresh)
+
+            showNotification('Login realizado com sucesso', 'success');
 
             router.replace('/');
 

@@ -11,6 +11,12 @@ import { Suspense, useState, useEffect } from 'react';
 export default function Home() {
   const [loading, setLoading] = useState(true);
 
+  // const [user, orders, settings] = await Promise.all([
+  //   fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/users/me/`, { cache: "no-store" }).then(r => r.json()),
+  //   fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/orders/`, { cache: "no-store" }).then(r => r.json()),
+  //   fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/settings/`, { cache: "no-store" }).then(r => r.json())
+  // ]);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setLoading(false), 250);
     return () => window.clearTimeout(timeoutId);

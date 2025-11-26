@@ -1,38 +1,40 @@
 import React, { useState } from "react";
-import menuItems from "../data/menuItems.json";
 import CustomItem from '../components/CustomItem'
 import NoteDialog from "./NoteDialog";
+import { useMenu } from "../hooks/useMenu";
+import { MenuCategory, MenuDish } from "../types/menu";
+import { Spinner } from "@/components/ui/spinner";
+
+type MenuSubItemType = {
+  id: string;
+  name: string;
+  departiment: string;
+  description?: string;
+  category: string;
+  dishUniqueId: string;
+  optionGroups: string[][];
+};
 
 export default function Items() {
   const [openDialog, setOpenDialog] = useState(false); // Controle do estado do diálogo
   const [menuSubItems, setMenuSubItems] = useState<MenuSubItemType[]>([]); // Subitens para o diálogo
+  const { menu, isLoading } = useMenu();
 
-  interface MenuItem {
-    category: string;
-    departiment?: string;
-    color: string;
-    items: Item[];
-  }
+  const normalizeColor = (color: string) => (color.startsWith('#') ? color : `#${color}`);
 
-  interface Item {
-    id: number;
-    name: string;
-    departiment: string;
-    description?: string; // Agora é opcional
-  }
-
-  type MenuSubItemType = Item & {
-    category: string;
-    dishUniqueId: string;
-  };
-
-  const handleClickOpen = (items: Item[], category: string) => {
-    const itemsWithCategory = items.map((item) => { 
-      return { 
-        ...item,
-        category,
-        dishUniqueId: `${item.id}_${Date.now()}`, // Gera um ID único baseado no timestamp
-      } 
+  const handleClickOpen = (items: MenuDish[], categoryName: string) => {
+    const itemsWithCategory = items.map((item) => {
+      return {
+        id: item.uuid,
+        name: item.name,
+        departiment: "cozinha",
+        description: item.description,
+        category: categoryName,
+        optionGroups: (item.side_dish_options ?? []).map((group) =>
+          (group.side_dishes ?? []).map((sideDish) => sideDish.name)
+        ),
+        dishUniqueId: `${item.uuid}_${Date.now()}`, // Gera um ID único baseado no timestamp
+      };
     });
     setMenuSubItems(itemsWithCategory);
     setOpenDialog(true);
@@ -42,27 +44,43 @@ export default function Items() {
     setOpenDialog(false);
   };
 
-  const menuItem : MenuItem [] = menuItems["menu"]
+  const menuItemsList: MenuCategory[] = menu;
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[120px] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!menuItemsList.length) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#ead9c7] bg-white/60 p-6 text-center text-sm text-[#5c4227]/80">
+        Nenhum item disponível no cardápio.
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="grid grid-cols-2 gap-2 items-stretch">
-        {menuItem.map((menuItem: MenuItem, index) => (
+        {menuItemsList.map((menuItem: MenuCategory, index) => (
           <button
               key={index}
               type="button"
-              onClick={() => handleClickOpen(menuItem.items, menuItem.category)}
+              onClick={() => handleClickOpen(menuItem.items, menuItem.category.name)}
               className="group flex w-full items-center gap-3 rounded-2xl border border-[#ead9c7] bg-white p-4 text-left shadow-sm transition hover:border-[#c08a55] hover:shadow"
             >
               <span
                 className="h-5 w-1 rounded-full"
-                style={{ backgroundColor: menuItem.color }}
+                style={{ backgroundColor: normalizeColor(menuItem.category.color) }}
               />
               <div className="flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-base font-semibold text-[#2b160c]">
-                      {menuItem.category}
+                      {menuItem.category.name}
                     </p>
                   </div>
                 </div>
