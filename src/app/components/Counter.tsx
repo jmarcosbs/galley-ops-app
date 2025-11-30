@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react';
 import { Dish, useOrderContext } from '../../context/OrderContext';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
@@ -14,54 +13,48 @@ interface CounterProps {
 export default function Counter({ containerWidth, dishIndex, dishDepartiment }: CounterProps) {
 
     const { dishes, setDishes } = useOrderContext();
-
-    // Obtenha o valor de amount do prato específico no contexto
-    const currentDish = dishes[dishIndex];
-    const initialAmount = currentDish ? currentDish.amount : 0;
-
-    // Use o valor de initialAmount como valor inicial para o estado count
-    const [count, setCount] = useState(() => initialAmount);
+    const isKitchen = dishDepartiment === "cozinha";
+    const step = isKitchen ? 0.5 : 1;
+    const minValue = step;
+    const currentAmount = dishes[dishIndex]?.amount ?? 0;
 
     const incrementCount = () => {
-
-        setCount((prev) => (prev ? prev : 0) + (dishDepartiment == "cozinha" ? 0.5 : 1));
         setDishes((prevDishes: Dish[]) =>
             prevDishes.map((dish, index) =>
-                index === dishIndex ? { ...dish, amount: (dish.amount ?? 0) + (dishDepartiment == "cozinha" ? 0.5 : 1) } : dish
+                index === dishIndex ? { ...dish, amount: (dish.amount ?? 0) + step } : dish
             )
         );
     };
 
     const decrementCount = () => {
-        setCount((prev) => Math.max((prev ? prev : 0) - (dishDepartiment == "cozinha" ? 0.5 : 1), 0.5));
         setDishes((prevDishes: Dish[]) =>
             prevDishes.map((dish, index) =>
-                index === dishIndex ? { ...dish, amount: Math.max((dish.amount ?? 0) - (dishDepartiment == "cozinha" ? 0.5 : 1), 0) } : dish
+                index === dishIndex ? { ...dish, amount: Math.max((dish.amount ?? 0) - step, minValue) } : dish
             )
         );
     };
 
-    const isKitchen = dishDepartiment === "cozinha";
-    const minValue = isKitchen ? 0.5 : 1;
-    const disableDecrement = (count ?? 0) <= minValue;
+    const disableDecrement = currentAmount <= minValue;
 
     return (
-        <div className="flex flex-row items-center" style={{ width: containerWidth }}>
-            <div className="flex w-full flex-col overflow-hidden rounded-md border border-[#5c4227]/30 bg-[#5c4227]/10">
+        <div className="flex items-center w-auto">
+            <div className="flex flex-col overflow-hidden rounded-lg border border-[#5c4227]/30 bg-white shadow-sm">
                 <Button
                     type="button"
                     onClick={incrementCount}
-                    className="h-9 w-full rounded-none border-b border-[#5c4227]/20 bg-[#5c4227]/20 text-[#5c4227] hover:bg-[#5c4227]/30"
+                    aria-label="Aumentar quantidade"
+                    className="h-10 w-14 rounded-none border-b border-[#5c4227]/20 bg-[#5c4227]/15 text-[#5c4227] hover:bg-[#5c4227]/25"
                 >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-5 w-5" strokeWidth={3} />
                 </Button>
                 <Button
                     type="button"
                     onClick={decrementCount}
                     disabled={disableDecrement}
-                    className="h-9 w-full rounded-none bg-[#5c4227]/20 text-[#5c4227] hover:bg-[#5c4227]/30 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Diminuir quantidade"
+                    className="h-10 w-14 rounded-none bg-[#5c4227]/10 text-[#5c4227] hover:bg-[#5c4227]/20 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                    <Minus className="h-4 w-4" />
+                    <Minus className="h-5 w-5" strokeWidth={3} />
                 </Button>
             </div>
         </div>

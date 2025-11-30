@@ -5,139 +5,21 @@ import { AddOrderDialog } from '@/app/components/AddOrderDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { CheckCircle2, ReceiptText } from 'lucide-react';
+import { ReceiptText } from 'lucide-react';
+import { useOpenTables, OpenTable } from '../hooks/useTables';
+import { Spinner } from '@/components/ui/spinner';
+import { useAuth } from '../hooks/useAuth';
+import { useUtils } from '../hooks/useUtils';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
 });
-
-type TableItem = {
-  id: string;
-  name: string;
-  quantity: number;
-  note?: string;
-};
-
-type OpenTable = {
-  id: string;
-  label: string;
-  guests: number;
-  waiter: string;
-  status: string;
-  lastUpdate: string;
-  total: number;
-  highlights: string[];
-  items: TableItem[];
-};
-
-const openTables: OpenTable[] = [
-  {
-    id: 'mesa-01',
-    label: 'Varanda 01',
-    guests: 8,
-    waiter: 'Pedro Santos',
-    status: 'Conta em conferência',
-    lastUpdate: 'agora',
-    total: 864.3,
-    highlights: ['Sequência de frutos do mar', 'Drinks autorais', 'Sobremesas variadas'],
-    items: [
-      { id: 'mesa-01-item-1', name: 'Sequência mediterrânea', quantity: 3 },
-      { id: 'mesa-01-item-2', name: 'Risoto de polvo', quantity: 2 },
-      { id: 'mesa-01-item-3', name: 'Lagosta grelhada', quantity: 1 },
-      { id: 'mesa-01-item-4', name: 'Tartar de salmão', quantity: 2 },
-      { id: 'mesa-01-item-5', name: 'Ceviche clássico', quantity: 2 },
-      { id: 'mesa-01-item-6', name: 'Tábua de queijos', quantity: 1 },
-      { id: 'mesa-01-item-7', name: 'Vinho branco reserva', quantity: 3 },
-      { id: 'mesa-01-item-8', name: 'Gin tropical', quantity: 4 },
-      { id: 'mesa-01-item-9', name: 'Negroni artesanal', quantity: 4 },
-      { id: 'mesa-01-item-10', name: 'Limonada siciliana', quantity: 5 },
-      { id: 'mesa-01-item-11', name: 'Água com gás', quantity: 6 },
-      { id: 'mesa-01-item-12', name: 'Brownie com sorvete', quantity: 2 },
-      { id: 'mesa-01-item-13', name: 'Cheesecake de frutas vermelhas', quantity: 2 },
-      { id: 'mesa-01-item-14', name: 'Petit gâteau', quantity: 3 },
-      { id: 'mesa-01-item-15', name: 'Café espresso', quantity: 6 },
-    ],
-  },
-  {
-    id: 'mesa-07',
-    label: 'Mesa 07',
-    guests: 4,
-    waiter: 'Joana Oliveira',
-    status: 'Pratos principais em preparo',
-    lastUpdate: 'há 5 minutos',
-    total: 268.5,
-    highlights: ['2x Camarão grelhado', '1x Vinho branco', '1x Tábua mediterrânea'],
-    items: [
-      { id: 'mesa-07-item-1', name: 'Camarão grelhado', quantity: 2, note: 'Molho à parte' },
-      { id: 'mesa-07-item-2', name: 'Vinho branco', quantity: 1 },
-      { id: 'mesa-07-item-3', name: 'Tábua mediterrânea', quantity: 1 },
-    ],
-  },
-  {
-    id: 'mesa-02',
-    label: 'Mesa 02',
-    guests: 2,
-    waiter: 'Carlos Nunes',
-    status: 'Sobremesas liberadas',
-    lastUpdate: 'há 12 minutos',
-    total: 142.9,
-    highlights: ['1x Brownie com sorvete', '2x Café espresso'],
-    items: [
-      { id: 'mesa-02-item-1', name: 'Brownie com sorvete', quantity: 1, note: 'Sorvete extra' },
-      { id: 'mesa-02-item-2', name: 'Café espresso', quantity: 2 },
-    ],
-  },
-  {
-    id: 'mesa-11',
-    label: 'Deck externo 11',
-    guests: 6,
-    waiter: 'Bia Costa',
-    status: 'Drinks na fila',
-    lastUpdate: 'há 2 minutos',
-    total: 512.0,
-    highlights: ['Jarra Spritz', 'Ronda de Gin tônica'],
-    items: [
-      { id: 'mesa-11-item-1', name: 'Jarra Spritz', quantity: 1 },
-      { id: 'mesa-11-item-2', name: 'Gin tônica', quantity: 6, note: 'Com pepino' },
-    ],
-  },
-];
-
-const finishedTables = [
-  {
-    id: 'mesa-04',
-    label: 'Mesa 04',
-    total: 389.4,
-    payment: 'Cartão crédito',
-    closedAt: 'há 25 minutos',
-  },
-  {
-    id: 'mesa-09',
-    label: 'Balcão 09',
-    total: 96.0,
-    payment: 'Pix',
-    closedAt: 'há 40 minutos',
-  },
-  {
-    id: 'mesa-15',
-    label: 'Terraço 15',
-    total: 612.7,
-    payment: 'Cartão corporativo',
-    closedAt: 'há 1 hora',
-  },
-];
 
 export function TablesBoard() {
   const [activeTable, setActiveTable] = useState<OpenTable | null>(null);
@@ -146,6 +28,10 @@ export function TablesBoard() {
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [closeSelection, setCloseSelection] = useState<Record<string, number>>({});
   const [closeSelectionActive, setCloseSelectionActive] = useState<Record<string, boolean>>({});
+  const [isClosing, setIsClosing] = useState(false);
+  const { tables, isLoading, refetch } = useOpenTables();
+  const { makeAuthenticatedRequest } = useAuth();
+  const { showNotification } = useUtils();
 
   const handleShowItems = (table: OpenTable) => {
     setActiveTable(table);
@@ -159,13 +45,13 @@ export function TablesBoard() {
 
   const handleOpenCloseDialog = (table: OpenTable) => {
     setCloseTable(table);
-    const defaultSelection = table.items.reduce<Record<string, number>>((acc, item) => {
-      acc[item.id] = item.quantity;
+    const defaultSelection = (table.items ?? []).reduce<Record<string, number>>((acc, item) => {
+      acc[item.uuid] = item.quantity;
       return acc;
     }, {});
     setCloseSelection(defaultSelection);
-    const activeSelection = table.items.reduce<Record<string, boolean>>((acc, item) => {
-      acc[item.id] = true;
+    const activeSelection = (table.items ?? []).reduce<Record<string, boolean>>((acc, item) => {
+      acc[item.uuid] = true;
       return acc;
     }, {});
     setCloseSelectionActive(activeSelection);
@@ -190,8 +76,8 @@ export function TablesBoard() {
   const handleSelectAll = () => {
     if (!closeTable) return;
     setCloseSelectionActive((prev) =>
-      closeTable.items.reduce<Record<string, boolean>>((acc, item) => {
-        acc[item.id] = true;
+      (closeTable.items ?? []).reduce<Record<string, boolean>>((acc, item) => {
+        acc[item.uuid] = true;
         return acc;
       }, {}),
     );
@@ -200,8 +86,8 @@ export function TablesBoard() {
   const handleDeselectAll = () => {
     if (!closeTable) return;
     setCloseSelectionActive((prev) =>
-      closeTable.items.reduce<Record<string, boolean>>((acc, item) => {
-        acc[item.id] = false;
+      (closeTable.items ?? []).reduce<Record<string, boolean>>((acc, item) => {
+        acc[item.uuid] = false;
         return acc;
       }, {}),
     );
@@ -215,10 +101,68 @@ export function TablesBoard() {
     [closeSelection, closeSelectionActive],
   );
 
-  const handleProceedClose = () => {
-    console.log('Itens selecionados para fechamento', closeSelection);
-    handleCloseCloseDialog();
+  const handleProceedClose = async () => {
+    if (!closeTable) return;
+    const items = Object.entries(closeSelectionActive)
+      .filter(([itemId, isActive]) => isActive && (closeSelection[itemId] ?? 0) > 0)
+      .map(([itemId]) => ({
+        dish_order_uuid: itemId,
+        dish_order_quantity: closeSelection[itemId],
+      }));
+
+    if (!items.length) return;
+
+    setIsClosing(true);
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-settlement/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticket_number: closeTable.number,
+            items,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.detail || 'Erro ao fechar mesa');
+      }
+
+      showNotification('Fechamento registrado', 'success');
+      refetch();
+      handleCloseCloseDialog();
+    } catch (error) {
+      console.error(error);
+      showNotification(
+        error instanceof Error ? error.message : 'Erro ao registrar fechamento',
+        'error',
+      );
+    } finally {
+      setIsClosing(false);
+    }
   };
+
+  const normalizedTables = useMemo(
+    () =>
+      tables.map((table) => ({
+        ...table,
+        label: `Mesa ${table.number}`,
+      })),
+    [tables],
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[240px] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -234,9 +178,9 @@ export function TablesBoard() {
         </div>
 
         <div className="space-y-3">
-          {openTables.map((table) => (
+          {normalizedTables.map((table) => (
             <Card
-              key={table.id}
+              key={table.uuid}
               onClick={() => handleShowItems(table)}
               className="cursor-pointer"
             >
@@ -244,6 +188,9 @@ export function TablesBoard() {
                 <div className="flex w-full items-center gap-3 sm:w-auto">
                   <div className="w-1/2">
                     <p className="text-xl font-semibold text-foreground">{table.label}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {table.total != null ? currencyFormatter.format(table.total) : 'Total pendente'}
+                    </p>
                   </div>
                   <Button
                     variant="outline"
@@ -272,43 +219,18 @@ export function TablesBoard() {
               </CardContent>
             </Card>
           ))}
+          {!normalizedTables.length ? (
+            <div className="rounded-xl border border-dashed border-muted/70 bg-white/60 p-4 text-center text-sm text-muted-foreground">
+              Nenhuma mesa aberta no momento.
+            </div>
+          ) : null}
         </div>
       </section>
 
       <section>
-        <Accordion type="single" collapsible className="w-full rounded-lg border">
-          <AccordionItem value="finished">
-            <AccordionTrigger>
-              <div className="ml-4 flex items-center justify-between">
-                Mesas finalizadas ({finishedTables.length})
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-3">
-                {finishedTables.map((table) => (
-                  <Card key={table.id} className="bg-muted/40">
-                    <CardContent className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{table.label}</p>
-                        <p className="text-xs text-muted-foreground">Encerrada {table.closedAt}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">{table.payment}</p>
-                        <p className="text-base font-semibold">
-                          {currencyFormatter.format(table.total)}
-                        </p>
-                      </div>
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
-                        Reabrir mesa
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <div className="rounded-lg border border-dashed border-muted/60 px-4 py-3 text-sm text-muted-foreground">
+          Histórico de mesas finalizadas não disponível nesta versão básica.
+        </div>
       </section>
 
       <Dialog open={itemsDialogOpen} onOpenChange={(open) => (open ? null : handleCloseItems())}>
@@ -322,9 +244,9 @@ export function TablesBoard() {
             </p>
           </div>
           <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#d7c6b4]">
-            {activeTable?.items.map((item) => (
+            {activeTable?.items?.map((item) => (
               <div
-                key={item.id}
+                key={item.uuid}
                 className="flex items-center justify-between rounded-lg border border-muted/70 bg-white px-3 py-2"
               >
                 <div>
@@ -364,11 +286,11 @@ export function TablesBoard() {
                 Desmarcar todos
               </button>
             </div>
-            {closeTable?.items.map((item) => (
+            {closeTable?.items?.map((item) => (
               <div
-                key={item.id}
+                key={item.uuid}
                 className={`flex items-center justify-between rounded-lg border border-muted px-3 py-2 ${
-                  closeSelectionActive[item.id] ? '' : 'opacity-50'
+                  closeSelectionActive[item.uuid] ? '' : 'opacity-50'
                 }`}
               >
                 <div className="flex flex-1 flex-col gap-1">
@@ -377,8 +299,8 @@ export function TablesBoard() {
                       <input
                         type="checkbox"
                         className="h-5 w-5 accent-[#5c4227]"
-                        checked={closeSelectionActive[item.id] ?? false}
-                        onChange={() => handleToggleItem(item.id)}
+                        checked={closeSelectionActive[item.uuid] ?? false}
+                        onChange={() => handleToggleItem(item.uuid)}
                       />
                       <p className="text-base font-semibold text-foreground">{item.name}</p>
                     </label>
@@ -387,11 +309,11 @@ export function TablesBoard() {
                 </div>
                 <select
                   className={`h-12 rounded-md border border-input bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#5c4227] ${
-                    closeSelectionActive[item.id] ? '' : 'opacity-50'
+                    closeSelectionActive[item.uuid] ? '' : 'opacity-50'
                   }`}
-                  value={closeSelection[item.id] ?? 1}
-                  disabled={!closeSelectionActive[item.id]}
-                  onChange={(event) => handleSelectionChange(item.id, Number(event.target.value))}
+                  value={closeSelection[item.uuid] ?? 1}
+                  disabled={!closeSelectionActive[item.uuid]}
+                  onChange={(event) => handleSelectionChange(item.uuid, Number(event.target.value))}
                 >
                   {Array.from({ length: item.quantity }, (_, index) => index + 1).map((option) => (
                     <option key={option} value={option}>
@@ -404,10 +326,10 @@ export function TablesBoard() {
             <div className="border-t border-muted pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)]">
               <Button
                 className="w-full bg-[#5c4227] py-9 text-lg font-semibold text-white hover:bg-[#5c4227]/90"
-                disabled={!hasSelectedItems}
+                disabled={!hasSelectedItems || isClosing}
                 onClick={handleProceedClose}
               >
-                Fechar conta
+                {isClosing ? 'Enviando...' : 'Fechar conta'}
               </Button>
             </div>
           </div>

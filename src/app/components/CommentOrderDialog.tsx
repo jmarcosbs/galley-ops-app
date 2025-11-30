@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useOrderContext } from '../../context/OrderContext';
 import { cn } from '@/lib/utils';
+import { SideDishOption } from '../types/menu';
 
 interface CommentOrderProps {
     dishUniqueId: string;
@@ -30,37 +31,69 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
     useEffect(() => {
         if (props.openDialog) {
             setTempNote(props.note || ''); // Reseta `tempNote` ao abrir o diálogo
-            setSelectedOptions({}); // Reseta as opções selecionadas ao abrir o diálogo
+            const defaults =
+                dish?.selectedSideDishes?.reduce<Record<number, string>>((acc, item, index) => {
+                    acc[index] = item.sideDishUuid;
+                    return acc;
+                }, {}) ?? {};
+            if (Object.keys(defaults).length === 0) {
+                const sideDishDefaults =
+                    dish?.sideDishOptions?.reduce<Record<number, string>>((acc, option, index) => {
+                        const defaultItem = option.default_side_dish ?? option.side_dishes[0];
+                        if (defaultItem) {
+                            acc[index] = defaultItem.uuid;
+                        }
+                        return acc;
+                    }, {}) ?? {};
+                setSelectedOptions(sideDishDefaults);
+            } else {
+                setSelectedOptions(defaults);
+            }
         }
-    }, [props.openDialog, props.note]);
+    }, [props.openDialog, props.note, dish?.selectedSideDishes, dish?.sideDishOptions]);
 
     const handleNoteChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setTempNote(event.target.value); // Atualiza a observação temporária
     };
 
     const handleAddNote = () => {
-        const finalNote = tempNote + (Object.keys(selectedOptions).length > 0 
-            ? ` - ${Object.values(selectedOptions).join(' e ')}` 
-            : '');
+        const selectedSideDishes =
+            dish?.sideDishOptions?.map((option, index) => {
+                const selectedUuid =
+                    selectedOptions[index] || option.default_side_dish?.uuid || option.side_dishes[0]?.uuid;
+                const selected = option.side_dishes.find((item) => item.uuid === selectedUuid);
+                if (!selected) return null;
+                return {
+                    optionUuid: option.uuid,
+                    sideDishUuid: selected.uuid,
+                    name: selected.name,
+                };
+            }).filter(Boolean) ?? [];
+
+        const finalNote =
+            tempNote +
+            (selectedSideDishes.length > 0
+                ? ` - ${selectedSideDishes.map((item) => item?.name).filter(Boolean).join(' e ')}`
+                : '');
         
-        if (finalNote.length > 0) {
-            setDishes((prevDishes) =>
-                prevDishes.map((dish) =>
-                    dish.unique_id === props.dishUniqueId ? { ...dish, note: finalNote } : dish
-                )
-            );
-        }
+        setDishes((prevDishes) =>
+            prevDishes.map((dish) =>
+                dish.unique_id === props.dishUniqueId
+                    ? { ...dish, note: finalNote || null, selectedSideDishes }
+                    : dish
+            )
+        );
 
         props.onClose();
         setTempNote('');
     };
 
-    const itemOptions: string[][] = dish?.optionGroups ?? [];
+    const itemOptions: SideDishOption[] = dish?.sideDishOptions ?? [];
 
-    const handleOptionChange = (option: string, groupIndex: number) => {
+    const handleOptionChange = (optionUuid: string, groupIndex: number) => {
         setSelectedOptions(prevSelected => ({
             ...prevSelected,
-            [groupIndex]: option, // Armazena a seleção para cada grupo
+            [groupIndex]: optionUuid, // Armazena a seleção para cada grupo
         }));
     };
 
@@ -95,13 +128,13 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
                                 {`Opção ${groupIndex + 1}`}
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                {option.map((item, idx) => {
-                                    const isSelected = selectedOptions[groupIndex] === item;
+                                {option.side_dishes.map((item, idx) => {
+                                    const isSelected = selectedOptions[groupIndex] === item.uuid;
                                     return (
                                         <button
                                             type="button"
-                                            key={`${item}-${idx}`}
-                                            onClick={() => handleOptionChange(item, groupIndex)}
+                                            key={`${item.uuid}-${idx}`}
+                                            onClick={() => handleOptionChange(item.uuid, groupIndex)}
                                             className={cn(
                                                 "rounded-full border px-3 py-1 text-sm font-medium transition",
                                                 isSelected
@@ -109,7 +142,7 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
                                                     : "border-[#5c4227]/30 text-[#5c4227] hover:bg-[#f4ece3]"
                                             )}
                                         >
-                                            {item}
+                                            {item.name}
                                         </button>
                                     )
                                 })}

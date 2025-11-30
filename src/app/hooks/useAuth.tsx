@@ -53,20 +53,22 @@ export const useAuth = () => {
         if (!refreshToken) {
             throw new Error('No refresh token');
         }
-        const response = await fetch(`${process.env.SERVICE_URL}/token/refresh/`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/users/token/refresh/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ refreshToken }),
+            body: JSON.stringify({ refresh: refreshToken }),
         });
         if (!response.ok) {
             throw new Error('Failed to refresh tokens');
         }
         const data = await response.json();
         
-        storeAuthTokens(data.accessToken, data.refreshToken);
-        return data.accessToken;
+        const newAccess = data.access;
+        const newRefresh = data.refresh ?? refreshToken;
+        storeAuthTokens(newAccess, newRefresh);
+        return newAccess;
     }
 
     const login = async (username: string, password: string) : Promise<boolean> => {
@@ -105,18 +107,24 @@ export const useAuth = () => {
         router.replace('/login');
     }
 
-    const makeAuthenticatedRequest = async (url: string, options: RequestInit) : Promise<Response> => {
+    const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) : Promise<Response> => {
+        const baseHeaders: HeadersInit = {
+            ...(options.headers || {}),
+        };
+        if (accessToken) {
+            baseHeaders['Authorization'] = `Bearer ${accessToken}`;
+        }
+
         let response = await fetch(url, {
             ...options,
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
+            headers: baseHeaders,
         });
 
         if (response.status === 401 || response.status === 403) {
             try {
                 const newAccessToken = await getNewAccessToken(refreshToken);
-                const retryHeaders = {
+                const retryHeaders: HeadersInit = {
+                    ...(options.headers || {}),
                     'Authorization': `Bearer ${newAccessToken}`,
                 };
                 response = await fetch(url, {

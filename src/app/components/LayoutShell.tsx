@@ -11,6 +11,8 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -74,6 +76,9 @@ function LayoutShellContent({ children }: LayoutShellProps) {
                     </button>
                   </DialogTrigger>
                   <DialogContent className="left-0 top-0 h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-none bg-background p-0 [&>button:last-child]:hidden">
+                    <DialogHeader className="sr-only">
+                      <DialogTitle>Gerenciar mesas</DialogTitle>
+                    </DialogHeader>
                     <div className="flex h-full flex-col">
                       <div className="flex items-center justify-between border-b px-4 py-3">
                         <div className="space-y-0.5">

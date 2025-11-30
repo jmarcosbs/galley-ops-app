@@ -17,6 +17,7 @@ const { setDishes } = useOrderContext();
 const [open, setOpen] = useState(false);
 const [nameValue, setNameValue] = useState("");
 const [selectValue, setSelectValue] = useState("");
+const [foodTypeValue, setFoodTypeValue] = useState("");
 const [noteValue, setNoteValue] = useState("");
 
 const handleClickOpen = () => {
@@ -27,25 +28,37 @@ const handleClose = () => {
 setOpen(false);
 };
 
-const handleClickSubItem = (name : string, department : string, note : string) => {
+const handleClickSubItem = (name : string, department : string, note : string, foodType: string) => {
 	const newDish: Dish = {
-	id: 'custom',
-	unique_id: `custom_${Date.now()}`, // Gera um ID único baseado no timestamp
-	name: name,
-	departiment: department, // Usa o departamento passado como argumento
-	amount: 1, // Substitua pelo valor correto
-	note: note != "" ? note : null, // Inicializa note como null
-	category: null,
-	optionGroups: []
+		id: 'custom',
+		unique_id: `custom_${Date.now()}`, // Gera um ID único baseado no timestamp
+		name: name,
+		departiment: department, // Usa o departamento passado como argumento
+		amount: 1, // Substitua pelo valor correto
+		note: note != "" ? note : null, // Inicializa note como null
+		category: foodType || null,
+		optionGroups: []
 	};
 
-	setDishes((prevDishes: Dish[]) => { // Specify the type of prevDishes
-	const updatedDishes = [...prevDishes, newDish];
-	return updatedDishes; // Return the updated array
+	setDishes((prevDishes: Dish[]) => {
+		let merged = false;
+		const updated = prevDishes.map((dish) => {
+			const sameName = (dish.name || '').trim() === (newDish.name || '').trim();
+			const sameDept = (dish.departiment || '') === (newDish.departiment || '');
+			const sameNote = (dish.note || '') === (newDish.note || '');
+			const sameCategory = (dish.category || '') === (newDish.category || '');
+			if (sameName && sameDept && sameNote && sameCategory) {
+				merged = true;
+				return { ...dish, amount: (dish.amount ?? 0) + 1 };
+			}
+			return dish;
+		});
+		return merged ? updated : [...updated, newDish];
 	});
 
 	setNameValue("");
 	setSelectValue("");
+	setFoodTypeValue("");
 	setNoteValue("");
 
 	handleClose()
@@ -110,6 +123,29 @@ return (
 				</div>
 
 				<div className="space-y-2">
+					<Label htmlFor="custom-food-type" className="text-[#5c4227]">
+						Tipo de alimento
+					</Label>
+					<select
+						id="custom-food-type"
+						required
+						value={foodTypeValue}
+						onChange={(e) => setFoodTypeValue(e.target.value)}
+						className="h-10 w-full rounded-md border border-[#5c4227]/30 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5c4227]"
+					>
+						<option value="" disabled>
+							Selecione o tipo
+						</option>
+						<option value="Peixe">Peixe</option>
+						<option value="Frango">Frango</option>
+						<option value="Carne">Carne</option>
+						<option value="Bebida">Bebida</option>
+						<option value="Outros">Outros</option>
+					</select>
+					<p className="text-xs text-muted-foreground">Ajuda a indicar a categoria do personalizado.</p>
+				</div>
+
+				<div className="space-y-2">
 					<Label htmlFor="custom-note" className="text-[#5c4227]">
 						Observação
 					</Label>
@@ -131,8 +167,8 @@ return (
 				<Button
 					type="button"
 					className="bg-[#5c4227] hover:bg-[#5c4227]/90"
-					onClick={() => handleClickSubItem(nameValue, selectValue, noteValue)}
-					disabled={!nameValue || !selectValue}
+					onClick={() => handleClickSubItem(nameValue, selectValue, noteValue, foodTypeValue)}
+					disabled={!nameValue || !selectValue || !foodTypeValue}
 				>
 					Adicionar
 				</Button>

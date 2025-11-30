@@ -1,5 +1,12 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { SideDishOption } from '@/app/types/menu';
+
+export type SelectedSideDish = {
+  optionUuid: string;
+  sideDishUuid: string;
+  name: string;
+};
 
 export type Dish = {
   id: string;
@@ -9,14 +16,14 @@ export type Dish = {
   amount: number | null;
   note: string | null;
   category: string | null;
+  sideDishOptions?: SideDishOption[];
+  selectedSideDishes?: SelectedSideDish[];
   optionGroups?: string[][];
 };
 
 interface OrderContextProps {
   tableNumber: number;
   setTableNumber: (tableNumber: number) => void;
-  waiter: string;
-  setWaiter: (note: string) => void;
   isOutside: boolean;
   setIsOutside: (isOutside: boolean) => void;
   dishes: Dish[];
@@ -36,6 +43,7 @@ interface GroupedDishesAcc {
       amount: number | null;
       dish_note: string | null;
       category: string | null;
+      side_dishes?: { side_dish_uuid: string }[];
   };
 }
 
@@ -49,14 +57,6 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return storedTableNumber ? parseInt(storedTableNumber, 10) : 0
     } 
     return 0
-  });
-
-  const [waiter, setWaiter] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const storedWaiter = localStorage.getItem('waiter');
-      return storedWaiter || '';
-    }
-    return '';
   });
 
   const [dishes, setDishes] = useState<Dish[]>(() => {
@@ -75,7 +75,12 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return false;
   });
   
-  const [note, setNote] = useState<string>('');
+  const [note, setNote] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('note') || '';
+    }
+    return '';
+  });
 
   useEffect(() => {
     // Armazena os dishes no localStorage sempre que eles mudam, se estiver no cliente
@@ -84,67 +89,82 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [dishes]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tableNumber', String(tableNumber));
+    }
+  }, [tableNumber]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('isOutside', String(isOutside));
+    }
+  }, [isOutside]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('note', note);
+    }
+  }, [note]);
+
   const getOrderAsJson = () => {
 
-    const order_dishes = dishes.map(dish => ({
-        dish: {
-            id: dish.id,
-            department: dish.departiment,
-            dish_name: dish.name
-        },
-        amount: dish.amount,
-        dish_note: dish.note,
-        category: dish.category // temporary category for sorting
+    const order_dishes = dishes.map((dish) => ({
+      dish_uuid: dish.id,
+      amount: dish.amount ?? 0,
+      dish_note: dish.note,
+      category: dish.category,
+      side_dishes: (dish.selectedSideDishes ?? []).map((selected) => ({
+        side_dish_uuid: selected.sideDishUuid,
+      })),
     }));
 
-    //Agrupa os pratos iguais
     const groupedDishes = order_dishes.reduce<GroupedDishesAcc>((acc, current) => {
-      const key = current.dish.id + (current.dish_note || '');
+      const sideDishesKey = JSON.stringify(current.side_dishes ?? []);
+      const key = `${current.dish_uuid}-${current.dish_note || ''}-${sideDishesKey}`;
       if (!acc[key]) {
-          acc[key] = { ...current };
+        acc[key] = {
+          dish: {
+            id: current.dish_uuid,
+            department: null,
+            dish_name: null,
+          },
+          amount: current.amount,
+          dish_note: current.dish_note,
+          category: current.category,
+          side_dishes: current.side_dishes,
+        };
       } else {
-          acc[key].amount = (acc[key].amount ?? 0) + (current.amount ?? 0);
+        acc[key].amount = (acc[key].amount ?? 0) + (current.amount ?? 0);
       }
       return acc;
-  }, {});
+    }, {});
 
     const groupedOrderDishes = Object.values(groupedDishes);
     const sortedGroupedOrderDishes = groupedOrderDishes.sort((a, b) => {
-      // First priority: Entradas
       if (a.category === '🍲 Entradas' && b.category !== '🍲 Entradas') return -1;
       if (a.category !== '🍲 Entradas' && b.category === '🍲 Entradas') return 1;
-      
-      // Second priority: department order (cozinha -> copa)
-      if (a.dish.department === 'cozinha' && b.dish.department === 'copa') return -1;
-      if (a.dish.department === 'copa' && b.dish.department === 'cozinha') return 1;
-
-      // Third priority: group by dish name within same category/department
-      if (a.dish.dish_name && b.dish.dish_name) {
-      return a.dish.dish_name.localeCompare(b.dish.dish_name);
-      }
-      
       return 0;
     });
 
-  const groupedWithOutCategory = sortedGroupedOrderDishes.map(dish => {
-    const { category, ...dishWithoutCategory } = dish;
-    return dishWithoutCategory;
-  });
+    const normalizedDishes = sortedGroupedOrderDishes.map((dish) => ({
+      dish_uuid: dish.dish.id,
+      amount: dish.amount,
+      dish_note: dish.dish_note,
+      side_dishes: dish.side_dishes ?? [],
+    }));
 
     const order = {
-        table_number: tableNumber,
-        waiter: waiter,
-        is_outside: isOutside,
-        order_note: note,
-        order_dishes: groupedWithOutCategory
+      ticket: tableNumber,
+      dishes: normalizedDishes,
+      general_note: note || null,
     };
 
-    console.log(order);
     return JSON.stringify(order);
-};
+  };
 
   return (
-    <OrderContext.Provider value={{ tableNumber, setTableNumber, waiter, setWaiter, isOutside, setIsOutside, dishes, setDishes, getOrderAsJson, note, setNote }}>
+    <OrderContext.Provider value={{ tableNumber, setTableNumber, isOutside, setIsOutside, dishes, setDishes, getOrderAsJson, note, setNote }}>
       {children}
     </OrderContext.Provider>
   );

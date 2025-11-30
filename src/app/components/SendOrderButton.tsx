@@ -12,6 +12,8 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useOrderContext } from '../../context/OrderContext';
+import { useAuth } from '../hooks/useAuth';
+import { useUtils } from '../hooks/useUtils';
 
 interface FeedbackState {
     open: boolean;
@@ -22,21 +24,30 @@ interface FeedbackState {
 type SendOrderResult = { success: true } | { success: false; message: string };
 
 export default function SendOrderButton() {
-    const { waiter, tableNumber, isOutside, dishes, getOrderAsJson } = useOrderContext();
+    const { tableNumber, isOutside, dishes, getOrderAsJson } = useOrderContext();
     const [feedback, setFeedback] = useState<FeedbackState>({ open: false, message: '', type: 'success' });
     const [isSending, setIsSending] = useState(false);
+    const { makeAuthenticatedRequest } = useAuth();
+    const { showNotification } = useUtils();
 
     const apiUrl = process.env.NEXT_PUBLIC_LOCAL_API_URL
-    const fullUrl = `${apiUrl}/api/orders/`;    
-    console.log("Full url API", apiUrl)
+    const fullUrl = `${apiUrl}/api/order/`;    
 
     const handleSubmit = async () => {
         let errors = '';
 
-        if (!waiter) errors += 'Erro: O nome do garçom está vazio.\n';
         if (!tableNumber) errors += 'Erro: O número da mesa está vazio.\n';
         if (isOutside === undefined) errors += 'Erro: A informação de local (fora/dentro) está ausente.\n';
         if (dishes.length === 0) errors += 'Erro: Nenhum prato foi adicionado.\n';
+
+        const payload = JSON.parse(getOrderAsJson());
+        const uuidRegex = /^[0-9a-fA-F-]{8}-[0-9a-fA-F-]{4}-[1-5][0-9a-fA-F-]{3}-[89abAB][0-9a-fA-F-]{3}-[0-9a-fA-F-]{12}$/;
+        const hasInvalidDish = payload.dishes.some(
+            (dish: any) => !dish.dish_uuid || !uuidRegex.test(dish.dish_uuid) || !dish.amount
+        );
+        if (hasInvalidDish) {
+            errors += 'Erro: Existem itens inválidos no pedido (itens personalizados ainda não são enviados).\n';
+        }
 
         if (errors) {
             setFeedback({ open: true, message: errors.trim(), type: 'error' });
@@ -72,7 +83,7 @@ export default function SendOrderButton() {
         const orderData = getOrderAsJson();
     
         try {
-            const response = await fetch(fullUrl, {
+            const response = await makeAuthenticatedRequest(fullUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -80,16 +91,29 @@ export default function SendOrderButton() {
                 body: orderData,
             });
     
-            // Verifica se a resposta é ok (status 200-299)
             if (response.ok) {
-                const responseBody = await response.json(); // Extrai o corpo da resposta
-                console.log('Resposta da API:', responseBody); // Exibe o corpo da resposta no console
+                showNotification('Pedido enviado com sucesso!', 'success');
                 return { success: true } as const;
             }
 
-            const errorBody = await response.json(); // Extrai o corpo da resposta de erro
-            console.error('Erro na resposta da API:', errorBody);
-            return { success: false, message: `Erro: ${errorBody.detail || 'Erro desconhecido'}` } as const;
+            let errorBody: any = {};
+            let errorText = '';
+            try {
+                errorBody = await response.json();
+            } catch (error) {
+                try {
+                    errorText = await response.text();
+                } catch (_err) {
+                    // ignore
+                }
+            }
+            console.error('Erro na resposta da API:', errorBody || errorText);
+            const detail =
+                errorBody?.detail ||
+                errorBody?.message ||
+                errorText ||
+                `Erro HTTP ${response.status}`;
+            return { success: false, message: `Erro: ${detail}` } as const;
     
         } catch (error) {
             console.error('Erro ao enviar pedido:', error);

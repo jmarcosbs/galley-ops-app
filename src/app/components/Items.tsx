@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import CustomItem from '../components/CustomItem'
 import NoteDialog from "./NoteDialog";
 import { useMenu } from "../hooks/useMenu";
-import { MenuCategory, MenuDish } from "../types/menu";
+import { MenuCategory, MenuDish, SideDishOption } from "../types/menu";
 import { Spinner } from "@/components/ui/spinner";
 
 type MenuSubItemType = {
@@ -13,6 +13,7 @@ type MenuSubItemType = {
   category: string;
   dishUniqueId: string;
   optionGroups: string[][];
+  sideDishOptions: SideDishOption[];
 };
 
 export default function Items() {
@@ -21,18 +22,21 @@ export default function Items() {
   const { menu, isLoading } = useMenu();
 
   const normalizeColor = (color: string) => (color.startsWith('#') ? color : `#${color}`);
+  const normalizeDepartment = (department?: string) =>
+    department === 'bar' ? 'copa' : 'cozinha';
 
   const handleClickOpen = (items: MenuDish[], categoryName: string) => {
     const itemsWithCategory = items.map((item) => {
       return {
         id: item.uuid,
         name: item.name,
-        departiment: "cozinha",
+        departiment: normalizeDepartment(item.department),
         description: item.description,
         category: categoryName,
         optionGroups: (item.side_dish_options ?? []).map((group) =>
           (group.side_dishes ?? []).map((sideDish) => sideDish.name)
         ),
+        sideDishOptions: item.side_dish_options ?? [],
         dishUniqueId: `${item.uuid}_${Date.now()}`, // Gera um ID único baseado no timestamp
       };
     });

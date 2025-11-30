@@ -19,6 +19,7 @@ export type MenuDish = {
   description: string;
   is_available: boolean;
   price: number;
+  department?: string;
   side_dish_options: SideDishOption[];
 };
 

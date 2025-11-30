@@ -10,8 +10,11 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dish, useOrderContext } from '../../context/OrderContext';
 import { cn } from '@/lib/utils';
+import { SideDishOption } from '../types/menu';
 
 type MenuSubItem = {
   id: string;
@@ -21,6 +24,7 @@ type MenuSubItem = {
   description?: string;
   category: string;
   optionGroups: string[][];
+  sideDishOptions: SideDishOption[];
 };
 
 type NoteDialogProps = {
@@ -34,14 +38,19 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
   const [selectedItem, setSelectedItem] = useState<MenuSubItem | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [optionGroups, setOptionGroups] = useState<string[][]>([]);
+  const [sideDishOptions, setSideDishOptions] = useState<SideDishOption[]>([]);
+  const [selectedSideDishes, setSelectedSideDishes] = useState<Record<number, string>>({});
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
+  const [itemNote, setItemNote] = useState<string>('');
 
   useEffect(() => {
     if (!openDialog) {
       setSelectedItem(null);
       setQuantity(1);
       setOptionGroups([]);
-      setSelectedOptions({});
+      setSideDishOptions([]);
+      setSelectedSideDishes({});
+      setItemNote('');
     }
   }, [openDialog]);
 
@@ -52,15 +61,28 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
     setSelectedItem(item);
     setQuantity(1);
     setOptionGroups(item.optionGroups ?? []);
-    if (item.departiment === 'cozinha') {
-      const defaults = item.optionGroups.reduce<Record<number, string>>((acc, group, index) => {
-        if (group.length > 0) acc[index] = group[0];
+    setSideDishOptions(item.sideDishOptions ?? []);
+    setItemNote('');
+
+    const defaults = (item.sideDishOptions ?? []).reduce<Record<number, string>>(
+      (acc, option, index) => {
+        const defaultDish = option.default_side_dish ?? option.side_dishes[0];
+        if (defaultDish) {
+          acc[index] = defaultDish.uuid;
+        }
         return acc;
-      }, {});
-      setSelectedOptions(defaults);
-    } else {
-      setSelectedOptions({});
-    }
+      },
+      {},
+    );
+    setSelectedSideDishes(defaults);
+    setSelectedOptions(
+      item.optionGroups.reduce<Record<number, string>>((acc, group, index) => {
+        if (group.length > 0) {
+          acc[index] = group[0];
+        }
+        return acc;
+      }, {})
+    );
   };
 
   const increment = () => setQuantity((prev) => Number((prev + step).toFixed(2)));
@@ -69,10 +91,38 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
 
   const handleAddDish = () => {
     if (!selectedItem) return;
-    const optionsNote = optionGroups
-      .map((_, index) => selectedOptions[index])
+
+    const normalizedSideDishes =
+      sideDishOptions
+        ?.map((option, index) => {
+          const selectedUuid =
+            selectedSideDishes[index] ||
+            option.default_side_dish?.uuid ||
+            option.side_dishes[0]?.uuid;
+          const selected = option.side_dishes.find((sd) => sd.uuid === selectedUuid);
+          if (!selected) return null;
+          return {
+            optionUuid: option.uuid,
+            sideDishUuid: selected.uuid,
+            name: selected.name,
+          };
+        })
+        .filter(Boolean) ?? [];
+
+    const nonDefaultSideDishes =
+      normalizedSideDishes.filter((item) => {
+        if (!item) return false;
+        const option = sideDishOptions?.find((opt) => opt.uuid === item.optionUuid);
+        const defaultUuid = option?.default_side_dish?.uuid;
+        return defaultUuid ? item.sideDishUuid !== defaultUuid : true;
+      }) ?? [];
+
+    const optionsNote = nonDefaultSideDishes
+      .map((item) => item?.name)
       .filter(Boolean)
       .join(' | ');
+
+    const combinedNote = [optionsNote, itemNote.trim()].filter(Boolean).join(' | ');
 
     const newDish: Dish = {
       id: selectedItem.id,
@@ -80,13 +130,39 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
       name: selectedItem.name,
       departiment: selectedItem.departiment,
       amount: quantity,
-      note: optionsNote.length ? optionsNote : null,
+      note: combinedNote.length ? combinedNote : null,
       category: selectedItem.category,
       optionGroups,
+      sideDishOptions,
+      selectedSideDishes: normalizedSideDishes as Dish['selectedSideDishes'],
     };
 
     setDishes((prevDishes) => {
-      const updated = [...prevDishes, newDish].sort((a, b) => {
+      const serializeSideDishes = (items?: Dish['selectedSideDishes']) =>
+        JSON.stringify(
+          (items ?? [])
+            .map((item) => `${item.optionUuid}-${item.sideDishUuid}`)
+            .sort(),
+        );
+
+      const targetKey = `${newDish.id}|${newDish.note ?? ''}|${serializeSideDishes(newDish.selectedSideDishes)}`;
+      let merged = false;
+
+      const mergedDishes = prevDishes.map((dish) => {
+        const currentKey = `${dish.id}|${dish.note ?? ''}|${serializeSideDishes(dish.selectedSideDishes)}`;
+        if (currentKey === targetKey) {
+          merged = true;
+          return {
+            ...dish,
+            amount: (dish.amount ?? 0) + (newDish.amount ?? 0),
+          };
+        }
+        return dish;
+      });
+
+      const updatedList = merged ? mergedDishes : [...mergedDishes, newDish];
+
+      return updatedList.sort((a, b) => {
         if (a.category === '🍲 Entradas' && b.category !== '🍲 Entradas') return -1;
         if (a.category !== '🍲 Entradas' && b.category === '🍲 Entradas') return 1;
         if (a.departiment === 'cozinha' && b.departiment === 'copa') return -1;
@@ -94,7 +170,6 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
         if (a.name && b.name) return a.name.localeCompare(b.name);
         return 0;
       });
-      return updated;
     });
 
     setSelectedItem(null);
@@ -148,9 +223,19 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
                           <button
                             type="button"
                             key={`${option}-${idx}`}
-                            onClick={() =>
-                              setSelectedOptions((prev) => ({ ...prev, [groupIndex]: option }))
-                            }
+                            onClick={() => {
+                              setSelectedOptions((prev) => ({ ...prev, [groupIndex]: option }));
+                              const sideDishOption = sideDishOptions?.[groupIndex];
+                              const matchedSideDish = sideDishOption?.side_dishes.find(
+                                (sd) => sd.name === option,
+                              );
+                              if (matchedSideDish) {
+                                setSelectedSideDishes((prev) => ({
+                                  ...prev,
+                                  [groupIndex]: matchedSideDish.uuid,
+                                }));
+                              }
+                            }}
                             className={cn(
                               'rounded-full border px-4 py-1 text-sm font-medium transition',
                               isSelected
@@ -175,7 +260,7 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
                 onClick={decrement}
                 disabled={quantity <= minQuantity}
               >
-                <Minus className="h-6 w-6" />
+                <Minus className="h-6 w-6" strokeWidth={3} />
               </button>
               <span className="text-2xl font-semibold text-[#5c4227]">
                 {Number.isInteger(quantity) ? quantity : quantity.toFixed(1)}
@@ -185,8 +270,24 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
                 className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#5c4227]/40 bg-[#5c4227]/10 text-[#5c4227] transition hover:bg-[#5c4227]/20"
                 onClick={increment}
               >
-                <Plus className="h-6 w-6" />
+                <Plus className="h-6 w-6" strokeWidth={3} />
               </button>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="item-note" className="text-sm font-medium text-[#5c4227]">
+                Observação do item
+              </Label>
+              <Textarea
+                id="item-note"
+                value={itemNote}
+                onChange={(e) => setItemNote(e.target.value)}
+                placeholder="Ex.: sem cebola, bem passado..."
+                className="border-[#5c4227]/30 focus-visible:ring-[#5c4227]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Essa observação será enviada junto com o item.
+              </p>
             </div>
 
             <Button
