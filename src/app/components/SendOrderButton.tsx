@@ -40,15 +40,6 @@ export default function SendOrderButton() {
         if (isOutside === undefined) errors += 'Erro: A informação de local (fora/dentro) está ausente.\n';
         if (dishes.length === 0) errors += 'Erro: Nenhum prato foi adicionado.\n';
 
-        const payload = JSON.parse(getOrderAsJson());
-        const uuidRegex = /^[0-9a-fA-F-]{8}-[0-9a-fA-F-]{4}-[1-5][0-9a-fA-F-]{3}-[89abAB][0-9a-fA-F-]{3}-[0-9a-fA-F-]{12}$/;
-        const hasInvalidDish = payload.dishes.some(
-            (dish: any) => !dish.dish_uuid || !uuidRegex.test(dish.dish_uuid) || !dish.amount
-        );
-        if (hasInvalidDish) {
-            errors += 'Erro: Existem itens inválidos no pedido (itens personalizados ainda não são enviados).\n';
-        }
-
         if (errors) {
             setFeedback({ open: true, message: errors.trim(), type: 'error' });
             return;

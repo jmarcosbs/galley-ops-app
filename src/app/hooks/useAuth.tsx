@@ -115,29 +115,37 @@ export const useAuth = () => {
             baseHeaders['Authorization'] = `Bearer ${accessToken}`;
         }
 
-        let response = await fetch(url, {
-            ...options,
-            headers: baseHeaders,
-        });
+        try {
+            let response = await fetch(url, {
+                ...options,
+                headers: baseHeaders,
+            });
 
-        if (response.status === 401 || response.status === 403) {
-            try {
-                const newAccessToken = await getNewAccessToken(refreshToken);
-                const retryHeaders: HeadersInit = {
-                    ...(options.headers || {}),
-                    'Authorization': `Bearer ${newAccessToken}`,
-                };
-                response = await fetch(url, {
-                    ...options,
-                    headers: retryHeaders,
-                });
-            } catch (error) {
-                logout();
-                throw new Error('Failed to make authenticated request');
+            if (response.status === 401 || response.status === 403) {
+                try {
+                    const newAccessToken = await getNewAccessToken(refreshToken);
+                    const retryHeaders: HeadersInit = {
+                        ...(options.headers || {}),
+                        'Authorization': `Bearer ${newAccessToken}`,
+                    };
+                    response = await fetch(url, {
+                        ...options,
+                        headers: retryHeaders,
+                    });
+                } catch (error) {
+                    showNotification('Erro ao renovar token: ' + error, 'error');
+                    logout();
+                    throw new Error('Failed to make authenticated request');
+                }
             }
+
+            return response;
+
+        } catch (error) {
+            showNotification('Erro ao fazer requisição: ' + error, 'error');
+            throw error;
         }
 
-        return response;
     }
 
     const redirectToLogin = () : void => {

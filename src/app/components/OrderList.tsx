@@ -30,12 +30,12 @@ function OrderList() {
                                 <HandleOrderItem dishIndex={index} />
                             </div>
 
-                            <div className="flex items-center gap-3 text-[#5c4227]">
+                            <div className="flex min-w-0 flex-1 items-center gap-3 text-[#5c4227]">
                                 <span className="text-3xl font-bold">{dish.amount}</span>
-                                <div className="flex flex-col">
-                                    <span className="text-lg font-semibold">{dish.name}</span>
+                                <div className="flex min-w-0 flex-1 flex-col">
+                                    <span className="break-words text-lg font-semibold leading-tight whitespace-normal">{dish.name}</span>
                                     {dish.note && (
-                                        <span className="text-sm text-[#5c422799]">
+                                        <span className="break-words text-sm text-[#5c422799] leading-tight whitespace-normal">
                                             {dish.note}
                                         </span>
                                     )}

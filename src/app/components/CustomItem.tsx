@@ -11,14 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useOrderContext, Dish } from '../../context/OrderContext';
+import { OrderDish } from '../types/order';
 
 export default function CustomItem() {
+	
 const { setDishes } = useOrderContext();
 const [open, setOpen] = useState(false);
 const [nameValue, setNameValue] = useState("");
 const [selectValue, setSelectValue] = useState("");
 const [foodTypeValue, setFoodTypeValue] = useState("");
 const [noteValue, setNoteValue] = useState("");
+const [priceValue, setPriceValue] = useState("");
 
 const handleClickOpen = () => {
 setOpen(true);
@@ -28,41 +31,40 @@ const handleClose = () => {
 setOpen(false);
 };
 
-const handleClickSubItem = (name : string, department : string, note : string, foodType: string) => {
+const handleClickSubItem = (name : string, department : string, note : string, ncm: string, price: number) => {
 	const newDish: Dish = {
-		id: 'custom',
+		id: null,
+		custom_dish: {
+			name: name,
+			price: price,
+			ncm: ncm,
+			department: department,
+		},
 		unique_id: `custom_${Date.now()}`, // Gera um ID único baseado no timestamp
 		name: name,
 		departiment: department, // Usa o departamento passado como argumento
 		amount: 1, // Substitua pelo valor correto
 		note: note != "" ? note : null, // Inicializa note como null
-		category: foodType || null,
+		category: "Personalizado",
 		optionGroups: []
 	};
 
 	setDishes((prevDishes: Dish[]) => {
-		let merged = false;
-		const updated = prevDishes.map((dish) => {
-			const sameName = (dish.name || '').trim() === (newDish.name || '').trim();
-			const sameDept = (dish.departiment || '') === (newDish.departiment || '');
-			const sameNote = (dish.note || '') === (newDish.note || '');
-			const sameCategory = (dish.category || '') === (newDish.category || '');
-			if (sameName && sameDept && sameNote && sameCategory) {
-				merged = true;
-				return { ...dish, amount: (dish.amount ?? 0) + 1 };
-			}
-			return dish;
-		});
-		return merged ? updated : [...updated, newDish];
+		return [...prevDishes, newDish];
 	});
 
 	setNameValue("");
 	setSelectValue("");
 	setFoodTypeValue("");
 	setNoteValue("");
+	setPriceValue("");
 
 	handleClose()
 };
+
+const normalizedPriceValue = priceValue.replace(',', '.');
+const parsedPrice = parseFloat(normalizedPriceValue);
+const isPriceValid = Number.isFinite(parsedPrice) && parsedPrice >= 0;
 
 return (
 <>
@@ -136,13 +138,25 @@ return (
 						<option value="" disabled>
 							Selecione o tipo
 						</option>
-						<option value="Peixe">Peixe</option>
-						<option value="Frango">Frango</option>
-						<option value="Carne">Carne</option>
-						<option value="Bebida">Bebida</option>
-						<option value="Outros">Outros</option>
+						<option value="21069090">Comida</option>
+						<option value="22021000">Refrigerante</option>
+						<option value="20089900">Suco</option>
+						<option value="21069029">Outros</option>
 					</select>
 					<p className="text-xs text-muted-foreground">Ajuda a indicar a categoria do personalizado.</p>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="custom-price" className="text-[#5c4227]">
+						Preço
+					</Label>
+					<Input
+						id="custom-price"
+						value={priceValue}
+						onChange={(e) => setPriceValue(e.target.value)}
+						placeholder="Ex.: 10.00"
+						className="border-[#5c4227]/30 focus-visible:ring-[#5c4227]"
+					/>
 				</div>
 
 				<div className="space-y-2">
@@ -167,8 +181,14 @@ return (
 				<Button
 					type="button"
 					className="bg-[#5c4227] hover:bg-[#5c4227]/90"
-					onClick={() => handleClickSubItem(nameValue, selectValue, noteValue, foodTypeValue)}
-					disabled={!nameValue || !selectValue || !foodTypeValue}
+					onClick={() => handleClickSubItem(
+						nameValue,
+						selectValue,
+						noteValue,
+						foodTypeValue,
+						parsedPrice
+					)}
+					disabled={!nameValue || !selectValue || !foodTypeValue || !isPriceValid}
 				>
 					Adicionar
 				</Button>

@@ -31,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!refreshToken) {
                 setAuthStatus(AuthStatus.UNAUTHENTICATED);
                 showNotification('Sessão expirada', 'error');
+                redirectToLogin();
                 return;
             }
 
@@ -41,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     if (!cancelled) {
                         setAuthStatus(AuthStatus.UNAUTHENTICATED);
                         showNotification('Sessão expirada', 'error');
+                        redirectToLogin();
                         logout();
                     }
                     return;

@@ -1,6 +1,7 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SideDishOption } from '@/app/types/menu';
+import type { SideDishOption } from '@/app/types/menu';
+import type { CustomDish, OrderDish, OrderPayload, SideDish } from '@/app/types/order';
 
 export type SelectedSideDish = {
   optionUuid: string;
@@ -9,16 +10,17 @@ export type SelectedSideDish = {
 };
 
 export type Dish = {
-  id: string;
-  unique_id: string;
-  name: string | null;
+  id: string | null; // dish uuid vindo do menu ou custom
+  unique_id: string; // identificador único para diferenciar itens iguais
+  custom_dish: CustomDish | null;
+  name: string;
   departiment: string | null;
-  amount: number | null;
+  amount: number;
   note: string | null;
   category: string | null;
+  optionGroups?: string[][];
   sideDishOptions?: SideDishOption[];
   selectedSideDishes?: SelectedSideDish[];
-  optionGroups?: string[][];
 };
 
 interface OrderContextProps {
@@ -27,7 +29,7 @@ interface OrderContextProps {
   isOutside: boolean;
   setIsOutside: (isOutside: boolean) => void;
   dishes: Dish[];
-  setDishes: React.Dispatch<React.SetStateAction<Dish[]>>; // Tipo correto para setDishes
+  setDishes: React.Dispatch<React.SetStateAction<Dish[]>>;
   note: string;
   setNote: (note: string) => void;
   getOrderAsJson: () => string;
@@ -36,13 +38,13 @@ interface OrderContextProps {
 interface GroupedDishesAcc {
   [key: string]: {
       dish: {
-          id: string;
+          id: string | null;
           department: string | null;
           dish_name: string | null;
+          custom_dish: CustomDish | null;
       };
       amount: number | null;
       dish_note: string | null;
-      category: string | null;
       side_dishes?: { side_dish_uuid: string }[];
   };
 }
@@ -109,13 +111,14 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const getOrderAsJson = () => {
 
-    const order_dishes = dishes.map((dish) => ({
-      dish_uuid: dish.id,
+    // Converte os dishes para o formato do payload
+    const order_dishes = dishes.map((dish) : OrderDish => ({
+      dish_uuid: dish.id || null,
+      custom_dish: dish.custom_dish || null,
       amount: dish.amount ?? 0,
       dish_note: dish.note,
-      category: dish.category,
-      side_dishes: (dish.selectedSideDishes ?? []).map((selected) => ({
-        side_dish_uuid: selected.sideDishUuid,
+      side_dishes: (dish.selectedSideDishes ?? []).map((item) => ({
+        side_dish_uuid: item.sideDishUuid,
       })),
     }));
 
@@ -128,11 +131,10 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             id: current.dish_uuid,
             department: null,
             dish_name: null,
+            custom_dish: current.custom_dish || null,
           },
           amount: current.amount,
           dish_note: current.dish_note,
-          category: current.category,
-          side_dishes: current.side_dishes,
         };
       } else {
         acc[key].amount = (acc[key].amount ?? 0) + (current.amount ?? 0);
@@ -140,21 +142,15 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return acc;
     }, {});
 
-    const groupedOrderDishes = Object.values(groupedDishes);
-    const sortedGroupedOrderDishes = groupedOrderDishes.sort((a, b) => {
-      if (a.category === '🍲 Entradas' && b.category !== '🍲 Entradas') return -1;
-      if (a.category !== '🍲 Entradas' && b.category === '🍲 Entradas') return 1;
-      return 0;
-    });
-
-    const normalizedDishes = sortedGroupedOrderDishes.map((dish) => ({
-      dish_uuid: dish.dish.id,
-      amount: dish.amount,
+    const normalizedDishes : OrderDish[] = Object.values(groupedDishes).map((dish): OrderDish => ({
+      dish_uuid: dish.dish.id || null,
+      custom_dish: dish.dish.custom_dish || null,
+      amount: dish.amount || 1,
       dish_note: dish.dish_note,
       side_dishes: dish.side_dishes ?? [],
     }));
 
-    const order = {
+    const order : OrderPayload = {
       ticket: tableNumber,
       dishes: normalizedDishes,
       general_note: note || null,

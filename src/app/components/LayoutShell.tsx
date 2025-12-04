@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useContext, useEffect, useState } from 'react';
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -21,8 +21,9 @@ import { TablesBoard } from '@/app/components/TablesBoard';
 import { OrderProvider } from '@/context/OrderContext';
 import { X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import {  AuthProvider } from '@/context/AuthContext';
+import {  AuthContext, AuthProvider } from '@/context/AuthContext';
 import { Toaster } from 'sonner';
+import { useAuth } from '../hooks/useAuth';
 
 type LayoutShellProps = {
   children: ReactNode;
@@ -34,9 +35,13 @@ function LayoutShellContent({ children }: LayoutShellProps) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
 
+  const { authStatus } = useContext(AuthContext)!;
+
   useEffect(() => {
     setLoading(false);
   }, []);
+
+  if (authStatus === 'unauthenticated') return null;
 
   if (loading) {
     return (
