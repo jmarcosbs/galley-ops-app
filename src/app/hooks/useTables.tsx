@@ -6,6 +6,7 @@ export type TableItem = {
   quantity: number;
   note?: string | null;
   price?: number;
+  department?: string | null;
 };
 
 export type OpenTable = {

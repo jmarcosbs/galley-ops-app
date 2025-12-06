@@ -1,5 +1,5 @@
 'use client'
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import type { SideDishOption } from '@/app/types/menu';
 import type { CustomDish, OrderDish, OrderPayload, SideDish } from '@/app/types/order';
 
@@ -109,7 +109,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [note]);
 
-  const getOrderAsJson = () => {
+  const getOrderAsJson = useCallback(() => {
 
     // Converte os dishes para o formato do payload
     const order_dishes = dishes.map((dish) : OrderDish => ({
@@ -154,10 +154,35 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ticket: tableNumber,
       dishes: normalizedDishes,
       general_note: note || null,
+      is_outside: isOutside,
     };
 
     return JSON.stringify(order);
-  };
+  }, [dishes, note, tableNumber, isOutside]);
+
+  const prevDishCountRef = useRef(dishes.length);
+
+  useEffect(() => {
+    const previousCount = prevDishCountRef.current;
+
+    const logPayload = () => {
+      try {
+        const parsed = JSON.parse(getOrderAsJson());
+        return parsed;
+      } catch (_err) {
+        // fallback para manter o log mesmo se houver erro na conversão
+        return getOrderAsJson();
+      }
+    };
+
+    if (dishes.length > previousCount) {
+      console.log('[Order] Item adicionado. JSON enviado ao backend:', logPayload());
+    } else if (dishes.length < previousCount) {
+      console.log('[Order] Item removido. JSON enviado ao backend:', logPayload());
+    }
+
+    prevDishCountRef.current = dishes.length;
+  }, [dishes, getOrderAsJson]);
 
   return (
     <OrderContext.Provider value={{ tableNumber, setTableNumber, isOutside, setIsOutside, dishes, setDishes, getOrderAsJson, note, setNote }}>

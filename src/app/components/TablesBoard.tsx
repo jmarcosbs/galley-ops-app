@@ -11,17 +11,50 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ReceiptText, RefreshCcw } from 'lucide-react';
+import { Minus, Plus, ReceiptText, RefreshCcw } from 'lucide-react';
 import { useOpenTables, OpenTable } from '../hooks/useTables';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '../hooks/useAuth';
 import { useUtils } from '../hooks/useUtils';
 import { useMenu } from '../hooks/useMenu';
 
+type GroupedActiveItem = {
+  key: string;
+  name: string;
+  note?: string | null;
+  department?: string | null;
+  totalQuantity: number;
+  entries: { uuid: string; quantity: number }[];
+};
+
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
 });
+
+const getDepartmentStep = (department?: string | null) => {
+  const normalized = (department ?? '').toLowerCase();
+  if (normalized === 'bar' || normalized === 'copa') {
+    return 1;
+  }
+  return 0.5;
+};
+
+const formatQuantity = (quantity: number, department?: string | null) => {
+  const step = getDepartmentStep(department);
+  return quantity.toLocaleString('pt-BR', {
+    minimumFractionDigits: step === 0.5 ? 1 : 0,
+    maximumFractionDigits: step === 0.5 ? 1 : 0,
+  });
+};
+
+const getDepartmentLabel = (department?: string | null) => {
+  const normalized = (department ?? '').toLowerCase();
+  if (normalized === 'bar' || normalized === 'copa') {
+    return 'Copa';
+  }
+  return 'Cozinha';
+};
 
 export function TablesBoard() {
   const [activeTable, setActiveTable] = useState<OpenTable | null>(null);
@@ -31,8 +64,11 @@ export function TablesBoard() {
   const [closeSelection, setCloseSelection] = useState<Record<string, number>>({});
   const [closeSelectionActive, setCloseSelectionActive] = useState<Record<string, boolean>>({});
   const [isClosing, setIsClosing] = useState(false);
-  const [removeQuantities, setRemoveQuantities] = useState<Record<string, number>>({});
-  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const [removingGroupKey, setRemovingGroupKey] = useState<string | null>(null);
+  const [quantityAdjusting, setQuantityAdjusting] = useState<{
+    key: string;
+    type: 'increase' | 'decrease';
+  } | null>(null);
   const [selectedDishId, setSelectedDishId] = useState<string>('');
   const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -62,12 +98,28 @@ export function TablesBoard() {
     lastItemsCountRef.current = null;
   }, []);
 
-  useEffect(() => {
-    const defaults = (activeTable?.items ?? []).reduce<Record<string, number>>((acc, item) => {
-      acc[item.uuid] = 1;
-      return acc;
-    }, {});
-    setRemoveQuantities(defaults);
+  const groupedActiveItems = useMemo(() => {
+    if (!activeTable?.items) return [] as GroupedActiveItem[];
+    const groups = activeTable.items.reduce<Record<string, GroupedActiveItem>>(
+      (acc, item) => {
+        const key = `${item.name}__${item.note ?? ''}__${item.department ?? ''}`;
+        if (!acc[key]) {
+          acc[key] = {
+            key,
+            name: item.name,
+            note: item.note,
+            department: item.department,
+            totalQuantity: 0,
+            entries: [],
+          };
+        }
+        acc[key].totalQuantity += item.quantity;
+        acc[key].entries.push({ uuid: item.uuid, quantity: item.quantity });
+        return acc;
+      },
+      {},
+    );
+    return Object.values(groups);
   }, [activeTable]);
 
   useEffect(() => {
@@ -112,20 +164,57 @@ export function TablesBoard() {
     }
   }, [isLoading]);
 
+  const groupedCloseItems = useMemo(() => {
+    if (!closeTable?.items) return [];
+    const groups = closeTable.items.reduce<
+      Record<
+        string,
+        {
+          key: string;
+          name: string;
+          note?: string | null;
+          department?: string | null;
+          totalQuantity: number;
+          entries: { uuid: string; quantity: number }[];
+        }
+      >
+    >((acc, item) => {
+      const key = `${item.name}__${item.note ?? ''}__${item.department ?? ''}`;
+      if (!acc[key]) {
+        acc[key] = {
+          key,
+          name: item.name,
+          note: item.note,
+          department: item.department,
+          totalQuantity: 0,
+          entries: [],
+        };
+      }
+      acc[key].totalQuantity += item.quantity;
+      acc[key].entries.push({ uuid: item.uuid, quantity: item.quantity });
+      return acc;
+    }, {});
+    return Object.values(groups);
+  }, [closeTable?.items]);
+
   const handleOpenCloseDialog = (table: OpenTable) => {
     setCloseTable(table);
-    const defaultSelection = (table.items ?? []).reduce<Record<string, number>>((acc, item) => {
-      acc[item.uuid] = item.quantity;
+    setCloseDialogOpen(true);
+  };
+
+  useEffect(() => {
+    if (!closeDialogOpen) return;
+    const defaultSelection = groupedCloseItems.reduce<Record<string, number>>((acc, group) => {
+      acc[group.key] = group.totalQuantity;
+      return acc;
+    }, {});
+    const activeSelection = groupedCloseItems.reduce<Record<string, boolean>>((acc, group) => {
+      acc[group.key] = true;
       return acc;
     }, {});
     setCloseSelection(defaultSelection);
-    const activeSelection = (table.items ?? []).reduce<Record<string, boolean>>((acc, item) => {
-      acc[item.uuid] = true;
-      return acc;
-    }, {});
     setCloseSelectionActive(activeSelection);
-    setCloseDialogOpen(true);
-  };
+  }, [groupedCloseItems, closeDialogOpen]);
 
   const handleCloseCloseDialog = () => {
     setCloseDialogOpen(false);
@@ -134,29 +223,29 @@ export function TablesBoard() {
     setCloseSelectionActive({});
   };
 
-  const handleSelectionChange = (itemId: string, value: number) => {
-    setCloseSelection((prev) => ({ ...prev, [itemId]: value }));
+  const handleSelectionChange = (key: string, value: number) => {
+    setCloseSelection((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleToggleItem = (itemId: string) => {
-    setCloseSelectionActive((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
+  const handleToggleItem = (key: string) => {
+    setCloseSelectionActive((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleSelectAll = () => {
-    if (!closeTable) return;
-    setCloseSelectionActive((prev) =>
-      (closeTable.items ?? []).reduce<Record<string, boolean>>((acc, item) => {
-        acc[item.uuid] = true;
+    if (!groupedCloseItems.length) return;
+    setCloseSelectionActive(
+      groupedCloseItems.reduce<Record<string, boolean>>((acc, group) => {
+        acc[group.key] = true;
         return acc;
       }, {}),
     );
   };
 
   const handleDeselectAll = () => {
-    if (!closeTable) return;
-    setCloseSelectionActive((prev) =>
-      (closeTable.items ?? []).reduce<Record<string, boolean>>((acc, item) => {
-        acc[item.uuid] = false;
+    if (!groupedCloseItems.length) return;
+    setCloseSelectionActive(
+      groupedCloseItems.reduce<Record<string, boolean>>((acc, group) => {
+        acc[group.key] = false;
         return acc;
       }, {}),
     );
@@ -179,10 +268,10 @@ export function TablesBoard() {
 
   const hasSelectedItems = useMemo(
     () =>
-      Object.entries(closeSelectionActive).some(
-        ([itemId, isActive]) => isActive && (closeSelection[itemId] ?? 0) > 0,
+      groupedCloseItems.some(
+        (group) => closeSelectionActive[group.key] && (closeSelection[group.key] ?? 0) > 0,
       ),
-    [closeSelection, closeSelectionActive],
+    [groupedCloseItems, closeSelection, closeSelectionActive],
   );
 
   const menuOptions = useMemo(
@@ -204,12 +293,22 @@ export function TablesBoard() {
 
   const handleProceedClose = async () => {
     if (!closeTable) return;
-    const items = Object.entries(closeSelectionActive)
-      .filter(([itemId, isActive]) => isActive && (closeSelection[itemId] ?? 0) > 0)
-      .map(([itemId]) => ({
-        dish_order_uuid: itemId,
-        dish_order_quantity: closeSelection[itemId],
-      }));
+    const items = groupedCloseItems.flatMap((group) => {
+      if (!closeSelectionActive[group.key]) return [];
+      let remaining = closeSelection[group.key] ?? 0;
+      if (remaining <= 0) return [];
+      const groupItems = [];
+      for (const entry of group.entries) {
+        if (remaining <= 0) break;
+        const amount = Math.min(entry.quantity, remaining);
+        groupItems.push({
+          dish_order_uuid: entry.uuid,
+          dish_order_quantity: amount,
+        });
+        remaining -= amount;
+      }
+      return groupItems;
+    });
 
     if (!items.length) return;
 
@@ -248,43 +347,117 @@ export function TablesBoard() {
     }
   };
 
-  const handleRemoveQuantityChange = (itemId: string, value: number) => {
-    setRemoveQuantities((prev) => ({ ...prev, [itemId]: value }));
+  const removeItemQuantity = async (itemId: string, quantity: number) => {
+    if (!activeTable) return false;
+    const response = await makeAuthenticatedRequest(
+      `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-items/remove/`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticket_number: activeTable.number,
+          dish_order_uuid: itemId,
+          quantity,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body?.detail || 'Erro ao remover item');
+    }
+    return true;
   };
 
-  const handleRemoveItem = async (itemId: string) => {
+  const increaseItemQuantity = async (itemId: string, quantity: number) => {
+    if (!activeTable) return false;
+    const response = await makeAuthenticatedRequest(
+      `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-items/increase/`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticket_number: activeTable.number,
+          dish_order_uuid: itemId,
+          quantity,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body?.detail || 'Erro ao atualizar item');
+    }
+    return true;
+  };
+
+  const removeQuantityFromGroup = async (
+    group: GroupedActiveItem,
+    quantity: number,
+  ) => {
+    let remaining = quantity;
+    for (const entry of group.entries) {
+      if (remaining <= 0) break;
+      const amount = Math.min(entry.quantity, remaining);
+      if (amount > 0) {
+        await removeItemQuantity(entry.uuid, amount);
+        remaining = Number((remaining - amount).toFixed(10));
+      }
+    }
+  };
+
+  const handleAdjustGroupQuantity = async (
+    groupKey: string,
+    type: 'increase' | 'decrease',
+  ) => {
     if (!activeTable) return;
-    const targetItem = activeTable.items?.find((item) => item.uuid === itemId);
-    if (!targetItem) {
-      showNotification('Item não encontrado nesta mesa.', 'error');
+    const group = groupedActiveItems.find((item) => item.key === groupKey);
+    if (!group) return;
+    const step = getDepartmentStep(group.department);
+
+    if (type === 'decrease' && group.totalQuantity <= 0) {
       return;
     }
 
-    const desiredQuantity = removeQuantities[itemId] ?? 1;
-    const quantity = Math.min(Math.max(desiredQuantity, 0.1), targetItem.quantity);
-
-    setRemovingItemId(itemId);
+    setQuantityAdjusting({ key: groupKey, type });
     try {
-      const response = await makeAuthenticatedRequest(
-        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-items/remove/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ticket_number: activeTable.number,
-            dish_order_uuid: itemId,
-            quantity,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body?.detail || 'Erro ao remover item');
+      if (type === 'decrease') {
+        const quantityToRemove = Math.min(step, group.totalQuantity);
+        await removeQuantityFromGroup(group, quantityToRemove);
+      } else {
+        const targetEntry = group.entries[0];
+        if (!targetEntry) return;
+        await increaseItemQuantity(targetEntry.uuid, step);
       }
+      showNotification('Quantidade atualizada', 'success');
+      refetch();
+    } catch (error) {
+      console.error(error);
+      showNotification(
+        error instanceof Error ? error.message : 'Não foi possível atualizar o item',
+        'error',
+      );
+    } finally {
+      setQuantityAdjusting(null);
+    }
+  };
 
+  const handleRemoveGroup = async (groupKey: string) => {
+    if (!activeTable) return;
+    const group = groupedActiveItems.find((item) => item.key === groupKey);
+    if (!group) return;
+    const confirmed = window.confirm(
+      `Remover todos os itens de "${group.name}" desta mesa?`,
+    );
+    if (!confirmed) return;
+
+    setRemovingGroupKey(groupKey);
+    try {
+      await removeQuantityFromGroup(group, group.totalQuantity);
       showNotification('Item removido', 'success');
       refetch();
     } catch (error) {
@@ -294,7 +467,7 @@ export function TablesBoard() {
         'error',
       );
     } finally {
-      setRemovingItemId(null);
+      setRemovingGroupKey(null);
     }
   };
 
@@ -554,50 +727,77 @@ export function TablesBoard() {
             ) : null}
 
             <div className="space-y-3">
-              {activeTable?.items?.length ? (
-                activeTable.items.map((item) => (
+            {groupedActiveItems.length ? (
+              groupedActiveItems.map((group) => {
+                const isAdjustingCurrent = quantityAdjusting?.key === group.key;
+                const disableDecrease =
+                  group.totalQuantity <= 0 || isAdjustingCurrent || removingGroupKey === group.key;
+                const disableIncrease = isAdjustingCurrent || removingGroupKey === group.key;
+
+                return (
                   <div
-                    key={item.uuid}
+                    key={group.key}
                     className="flex flex-col gap-3 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-base font-semibold text-foreground">{item.name}</p>
-                        {item.note ? (
-                          <p className="text-xs text-muted-foreground">Observação: {item.note}</p>
+                        <p className="text-base font-semibold text-foreground">{group.name}</p>
+                        {group.note ? (
+                          <p className="text-xs text-muted-foreground">Observação: {group.note}</p>
                         ) : null}
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-[#5c4227]">x{item.quantity}</p>
+                        <p className="text-sm font-semibold text-[#5c4227]">
+                          Quantidade: {formatQuantity(group.totalQuantity, group.department)}
+                        </p>
+                        {group.department ? (
+                          <p className="text-xs text-muted-foreground">
+                            Destino: {getDepartmentLabel(group.department)}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     {canManageItems ? (
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-                        <Input
-                          type="number"
-                          min={0.1}
-                          step={0.5}
-                          max={item.quantity}
-                          className="w-full sm:w-32"
-                          value={removeQuantities[item.uuid] ?? 1}
-                          onChange={(event) => {
-                            const value = Number(event.target.value);
-                            handleRemoveQuantityChange(item.uuid, Number.isNaN(value) ? 0 : value);
-                          }}
-                        />
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-10 w-10 border-[#5c4227] text-[#5c4227] hover:bg-[#5c4227]/10"
+                            onClick={() => handleAdjustGroupQuantity(group.key, 'decrease')}
+                            disabled={disableDecrease}
+                            aria-label="Diminuir quantidade"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="min-w-[48px] text-center text-lg font-semibold text-[#5c4227]">
+                            {formatQuantity(group.totalQuantity, group.department)}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-10 w-10 border-[#5c4227] text-[#5c4227] hover:bg-[#5c4227]/10"
+                            onClick={() => handleAdjustGroupQuantity(group.key, 'increase')}
+                            disabled={disableIncrease}
+                            aria-label="Aumentar quantidade"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <Button
                           variant="outline"
-                          className="border-[#5c4227] text-[#5c4227] hover:bg-[#5c4227] hover:text-white"
-                          onClick={() => handleRemoveItem(item.uuid)}
-                          disabled={removingItemId === item.uuid}
+                          className="border-red-300 text-red-600 hover:bg-red-50"
+                          onClick={() => handleRemoveGroup(group.key)}
+                          disabled={removingGroupKey === group.key}
                         >
-                          {removingItemId === item.uuid ? 'Removendo...' : 'Remover'}
+                          {removingGroupKey === group.key ? 'Removendo...' : 'Remover item'}
                         </Button>
                       </div>
                     ) : null}
                   </div>
-                ))
-              ) : (
+                );
+              })
+            ) : (
                 <div className="rounded-xl border border-dashed border-muted/70 bg-white/60 p-4 text-center text-sm text-muted-foreground">
                   Nenhum item vinculado a esta mesa.
                 </div>
@@ -631,11 +831,11 @@ export function TablesBoard() {
                 Desmarcar todos
               </button>
             </div>
-            {closeTable?.items?.map((item) => (
+            {groupedCloseItems.map((group) => (
               <div
-                key={item.uuid}
+                key={group.key}
                 className={`flex items-center justify-between rounded-lg border border-muted px-3 py-2 ${
-                  closeSelectionActive[item.uuid] ? '' : 'opacity-50'
+                  closeSelectionActive[group.key] ? '' : 'opacity-50'
                 }`}
               >
                 <div className="flex flex-1 flex-col gap-1">
@@ -644,24 +844,32 @@ export function TablesBoard() {
                       <input
                         type="checkbox"
                         className="h-5 w-5 accent-[#5c4227]"
-                        checked={closeSelectionActive[item.uuid] ?? false}
-                        onChange={() => handleToggleItem(item.uuid)}
+                        checked={closeSelectionActive[group.key] ?? false}
+                        onChange={() => handleToggleItem(group.key)}
                       />
-                      <p className="text-base font-semibold text-foreground">{item.name}</p>
+                      <p className="text-base font-semibold text-foreground">{group.name}</p>
                     </label>
                   </div>
-                  <p className="pl-7 text-xs text-muted-foreground">Disponível: {item.quantity}</p>
+                  <p className="pl-7 text-xs text-muted-foreground">Disponível: {group.totalQuantity}</p>
                 </div>
                 <select
                   className={`h-12 rounded-md border border-input bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#5c4227] ${
-                    closeSelectionActive[item.uuid] ? '' : 'opacity-50'
+                    closeSelectionActive[group.key] ? '' : 'opacity-50'
                   }`}
-                  value={closeSelection[item.uuid] ?? 1}
-                  disabled={!closeSelectionActive[item.uuid]}
-                  onChange={(event) => handleSelectionChange(item.uuid, Number(event.target.value))}
+                  value={closeSelection[group.key] ?? group.totalQuantity}
+                  disabled={!closeSelectionActive[group.key]}
+                  onChange={(event) => handleSelectionChange(group.key, Number(event.target.value))}
                 >
-                  {Array.from({ length: item.quantity }, (_, index) => index + 1).map((option) => (
-                    <option key={option} value={option}>
+                  {(() => {
+                    const step = group.department === 'bar' ? 1 : 0.5;
+                    const options: number[] = [];
+                    const max = group.totalQuantity + 1e-9;
+                    for (let value = step; value <= max; value += step) {
+                      options.push(Number(value.toFixed(2)));
+                    }
+                    return options;
+                  })().map((option) => (
+                    <option key={`${group.key}-${option}`} value={option}>
                       {option}
                     </option>
                   ))}

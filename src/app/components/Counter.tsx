@@ -13,7 +13,8 @@ interface CounterProps {
 export default function Counter({ containerWidth, dishIndex, dishDepartiment }: CounterProps) {
 
     const { dishes, setDishes } = useOrderContext();
-    const isKitchen = dishDepartiment === "cozinha";
+    const normalizedDepartment = (dishDepartiment ?? '').toLowerCase();
+    const isKitchen = normalizedDepartment === "cozinha" || normalizedDepartment === "kitchen";
     const step = isKitchen ? 0.5 : 1;
     const minValue = step;
     const currentAmount = dishes[dishIndex]?.amount ?? 0;

@@ -21,4 +21,5 @@ export type OrderPayload = {
     ticket: number;
     dishes: OrderDish[];
     general_note: string | null;
+    is_outside: boolean;
 }

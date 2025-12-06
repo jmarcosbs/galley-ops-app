@@ -9,7 +9,7 @@ import { useOrderContext } from '../../context/OrderContext';
 import { QrCode } from 'lucide-react';
 
 export default function TableNumber() {
-  const { tableNumber, setTableNumber } = useOrderContext();
+  const { tableNumber, setTableNumber, isOutside, setIsOutside } = useOrderContext();
 
   const handleTableNumberChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newTableNumber = event.target.value;
@@ -35,6 +35,10 @@ export default function TableNumber() {
 
   const displayValue = tableNumber === 0 ? '' : String(tableNumber);
 
+  const handleToggleOutside = () => {
+    setIsOutside(!isOutside);
+  };
+
   return (
     <section className="space-y-3">
       <Label
@@ -43,7 +47,19 @@ export default function TableNumber() {
       >
         Número da mesa
       </Label>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          onClick={handleToggleOutside}
+          aria-pressed={isOutside}
+          className={`h-14 px-6 font-semibold transition-colors ${
+            isOutside
+              ? 'border border-[#d34f1d] bg-[#d34f1d] text-white hover:bg-[#b84218]'
+              : 'border border-[#5c4227]/50 text-[#5c4227] bg-[#5c4227]/10'
+          }`}
+        >
+          Rua
+        </Button>
         <Input
           id="table-number-input"
           type="number"
