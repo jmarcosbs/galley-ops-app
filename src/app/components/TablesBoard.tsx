@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Minus, Plus, ReceiptText, RefreshCcw } from 'lucide-react';
+import { Minus, Plus, ReceiptText, RefreshCcw, Printer } from 'lucide-react';
 import { useOpenTables, OpenTable } from '../hooks/useTables';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '../hooks/useAuth';
@@ -69,6 +69,7 @@ export function TablesBoard() {
     key: string;
     type: 'increase' | 'decrease';
   } | null>(null);
+  const [reprintingSettlementId, setReprintingSettlementId] = useState<string | null>(null);
   const [selectedDishId, setSelectedDishId] = useState<string>('');
   const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -264,6 +265,34 @@ export function TablesBoard() {
     if (isRefreshingTables) return;
     setIsRefreshingTables(true);
     refetch();
+  };
+
+  const handleReprintSettlement = async (settlementUuid: string) => {
+    if (reprintingSettlementId) return;
+    setReprintingSettlementId(settlementUuid);
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-settlement/${settlementUuid}/reprint/`,
+        {
+          method: 'POST',
+        },
+      );
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.detail || 'Erro ao reimprimir cupom');
+      }
+
+      showNotification('Cupom enviado para impressão', 'success');
+    } catch (error) {
+      console.error(error);
+      showNotification(
+        error instanceof Error ? error.message : 'Não foi possível reimprimir o cupom',
+        'error',
+      );
+    } finally {
+      setReprintingSettlementId(null);
+    }
   };
 
   const hasSelectedItems = useMemo(
@@ -619,12 +648,26 @@ export function TablesBoard() {
                 className="flex flex-col gap-1 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
               >
                 <div className="flex items-center justify-between text-sm font-semibold text-[#5c4227]">
-                  <span>Mesa {entry.ticket_number}</span>
-                  <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
+                  <div className="flex flex-col">
+                    <span>Mesa {entry.ticket_number}</span>
+                    <p className="text-xs font-normal text-muted-foreground">
+                      Fechada por {entry.settled_by} em {formatSettlementDate(entry.created_at)}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className="h-7 gap-1 px-2 text-xs"
+                      onClick={() => handleReprintSettlement(entry.uuid)}
+                      disabled={reprintingSettlementId === entry.uuid}
+                    >
+                      <Printer className="h-3 w-3" />
+                      {reprintingSettlementId === entry.uuid ? 'Reimprimindo...' : 'Reimprimir'}
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Fechada por {entry.settled_by} em {formatSettlementDate(entry.created_at)}
-                </p>
               </div>
             ))
           ) : (
