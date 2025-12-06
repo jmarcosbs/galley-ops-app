@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AddOrderDialog } from '@/app/components/AddOrderDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,11 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ReceiptText } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ReceiptText, RefreshCcw } from 'lucide-react';
 import { useOpenTables, OpenTable } from '../hooks/useTables';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '../hooks/useAuth';
 import { useUtils } from '../hooks/useUtils';
+import { useMenu } from '../hooks/useMenu';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -29,19 +31,86 @@ export function TablesBoard() {
   const [closeSelection, setCloseSelection] = useState<Record<string, number>>({});
   const [closeSelectionActive, setCloseSelectionActive] = useState<Record<string, boolean>>({});
   const [isClosing, setIsClosing] = useState(false);
-  const { tables, isLoading, refetch } = useOpenTables();
-  const { makeAuthenticatedRequest } = useAuth();
+  const [removeQuantities, setRemoveQuantities] = useState<Record<string, number>>({});
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const [selectedDishId, setSelectedDishId] = useState<string>('');
+  const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [isRefreshingTables, setIsRefreshingTables] = useState(false);
+  const { tables, history, isLoading, refetch } = useOpenTables();
+  const { menu, isLoading: isMenuLoading } = useMenu();
+  const { makeAuthenticatedRequest, isSuperAdmin } = useAuth();
   const { showNotification } = useUtils();
+  const lastItemsCountRef = useRef<number | null>(null);
+  const canManageItems = isSuperAdmin;
 
   const handleShowItems = (table: OpenTable) => {
     setActiveTable(table);
     setItemsDialogOpen(true);
+    setShowAddForm(false);
+    setNewItemQuantity(1);
+    lastItemsCountRef.current = table.items?.length ?? 0;
   };
 
-  const handleCloseItems = () => {
+  const handleCloseItems = useCallback(() => {
     setItemsDialogOpen(false);
     setActiveTable(null);
-  };
+    setShowAddForm(false);
+    setNewItemQuantity(1);
+    setIsAddingItem(false);
+    lastItemsCountRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    const defaults = (activeTable?.items ?? []).reduce<Record<string, number>>((acc, item) => {
+      acc[item.uuid] = 1;
+      return acc;
+    }, {});
+    setRemoveQuantities(defaults);
+  }, [activeTable]);
+
+  useEffect(() => {
+    if (!activeTable) return;
+    const fresh = tables.find((table) => table.uuid === activeTable.uuid);
+    if (fresh) {
+      setActiveTable(fresh);
+    }
+  }, [tables, activeTable?.uuid]);
+
+  useEffect(() => {
+    if (!itemsDialogOpen) {
+      lastItemsCountRef.current = activeTable?.items?.length ?? null;
+      return;
+    }
+
+    const currentCount = activeTable?.items?.length ?? 0;
+    if (
+      lastItemsCountRef.current !== null &&
+      lastItemsCountRef.current > 0 &&
+      currentCount === 0
+    ) {
+      setItemsDialogOpen(false);
+      setActiveTable(null);
+      setShowAddForm(false);
+      setNewItemQuantity(1);
+      setIsAddingItem(false);
+      showNotification('Comanda finalizada', 'success');
+    }
+    lastItemsCountRef.current = currentCount;
+  }, [activeTable?.items?.length, itemsDialogOpen, showNotification]);
+
+  useEffect(() => {
+    if (!canManageItems) {
+      setShowAddForm(false);
+    }
+  }, [canManageItems]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setIsRefreshingTables(false);
+    }
+  }, [isLoading]);
 
   const handleOpenCloseDialog = (table: OpenTable) => {
     setCloseTable(table);
@@ -93,6 +162,21 @@ export function TablesBoard() {
     );
   };
 
+  const formatSettlementDate = (isoDate: string) => {
+    const date = new Date(isoDate);
+    if (Number.isNaN(date.getTime())) return isoDate;
+    return date.toLocaleString('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    });
+  };
+
+  const handleManualRefresh = () => {
+    if (isRefreshingTables) return;
+    setIsRefreshingTables(true);
+    refetch();
+  };
+
   const hasSelectedItems = useMemo(
     () =>
       Object.entries(closeSelectionActive).some(
@@ -100,6 +184,23 @@ export function TablesBoard() {
       ),
     [closeSelection, closeSelectionActive],
   );
+
+  const menuOptions = useMemo(
+    () =>
+      menu.flatMap((category) =>
+        (category.items ?? []).map((dish) => ({
+          uuid: dish.uuid,
+          label: `${category.category.name} — ${dish.name}`,
+        })),
+      ),
+    [menu],
+  );
+
+  useEffect(() => {
+    if (!selectedDishId && menuOptions.length) {
+      setSelectedDishId(menuOptions[0].uuid);
+    }
+  }, [menuOptions, selectedDishId]);
 
   const handleProceedClose = async () => {
     if (!closeTable) return;
@@ -147,6 +248,104 @@ export function TablesBoard() {
     }
   };
 
+  const handleRemoveQuantityChange = (itemId: string, value: number) => {
+    setRemoveQuantities((prev) => ({ ...prev, [itemId]: value }));
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (!activeTable) return;
+    const targetItem = activeTable.items?.find((item) => item.uuid === itemId);
+    if (!targetItem) {
+      showNotification('Item não encontrado nesta mesa.', 'error');
+      return;
+    }
+
+    const desiredQuantity = removeQuantities[itemId] ?? 1;
+    const quantity = Math.min(Math.max(desiredQuantity, 0.1), targetItem.quantity);
+
+    setRemovingItemId(itemId);
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-items/remove/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticket_number: activeTable.number,
+            dish_order_uuid: itemId,
+            quantity,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.detail || 'Erro ao remover item');
+      }
+
+      showNotification('Item removido', 'success');
+      refetch();
+    } catch (error) {
+      console.error(error);
+      showNotification(
+        error instanceof Error ? error.message : 'Não foi possível remover o item',
+        'error',
+      );
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
+
+  const handleAddItemToTable = async () => {
+    if (!activeTable) return;
+    if (!selectedDishId) {
+      showNotification('Selecione um item do cardápio', 'error');
+      return;
+    }
+    if (!newItemQuantity || newItemQuantity <= 0) {
+      showNotification('Informe uma quantidade válida', 'error');
+      return;
+    }
+
+    setIsAddingItem(true);
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-items/add/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticket_number: activeTable.number,
+            dish_uuid: selectedDishId,
+            amount: newItemQuantity,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.detail || 'Erro ao adicionar item');
+      }
+
+      showNotification('Item adicionado', 'success');
+      setNewItemQuantity(1);
+      setShowAddForm(false);
+      refetch();
+    } catch (error) {
+      console.error(error);
+      showNotification(
+        error instanceof Error ? error.message : 'Não foi possível adicionar o item',
+        'error',
+      );
+    } finally {
+      setIsAddingItem(false);
+    }
+  };
+
   const normalizedTables = useMemo(
     () =>
       tables.map((table) => ({
@@ -171,10 +370,18 @@ export function TablesBoard() {
       </section>
 
       <section className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-muted-foreground">Mesas abertas</p>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">Mesas abertas</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleManualRefresh}
+            disabled={isRefreshingTables || isLoading}
+          >
+            <RefreshCcw className={`h-4 w-4 ${isRefreshingTables ? 'animate-spin' : ''}`} />
+            {isRefreshingTables ? 'Atualizando...' : 'Atualizar'}
+          </Button>
         </div>
 
         <div className="space-y-3">
@@ -227,9 +434,31 @@ export function TablesBoard() {
         </div>
       </section>
 
-      <section>
-        <div className="rounded-lg border border-dashed border-muted/60 px-4 py-3 text-sm text-muted-foreground">
-          Histórico de mesas finalizadas não disponível nesta versão básica.
+      <section className="space-y-3">
+        <p className="text-sm uppercase tracking-wide text-muted-foreground">
+          Histórico de fechamentos
+        </p>
+        <div className="space-y-2">
+          {history.length ? (
+            history.map((entry) => (
+              <div
+                key={entry.uuid}
+                className="flex flex-col gap-1 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
+              >
+                <div className="flex items-center justify-between text-sm font-semibold text-[#5c4227]">
+                  <span>Mesa {entry.ticket_number}</span>
+                  <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Fechada por {entry.settled_by} em {formatSettlementDate(entry.created_at)}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-lg border border-dashed border-muted/70 bg-white/60 px-4 py-4 text-center text-sm text-muted-foreground">
+              Nenhum fechamento registrado recentemente.
+            </div>
+          )}
         </div>
       </section>
 
@@ -243,21 +472,137 @@ export function TablesBoard() {
               Itens atualmente vinculados à mesa.
             </p>
           </div>
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#d7c6b4]">
-            {activeTable?.items?.map((item) => (
-              <div
-                key={item.uuid}
-                className="flex items-center justify-between rounded-lg border border-muted/70 bg-white px-3 py-2"
-              >
-                <div>
-                  <p className="text-base font-semibold text-foreground">{item.name}</p>
-                  {item.note ? (
-                    <p className="text-xs text-muted-foreground">Observação: {item.note}</p>
-                  ) : null}
-                </div>
-                <span className="text-sm font-semibold text-[#5c4227]">x{item.quantity}</span>
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#d7c6b4]">
+            {canManageItems ? (
+              <div className="rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm">
+                {showAddForm ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Adicionar item</p>
+                        <p className="text-xs text-muted-foreground">
+                          Selecione um item do cardápio e envie direto para a mesa.
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => setShowAddForm(false)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                    {isMenuLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Spinner size="md" />
+                      </div>
+                    ) : menuOptions.length ? (
+                      <div className="mt-3 space-y-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <select
+                            className="h-12 flex-1 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5c4227]"
+                            value={selectedDishId}
+                            onChange={(event) => setSelectedDishId(event.target.value)}
+                          >
+                            {menuOptions.map((option) => (
+                              <option key={option.uuid} value={option.uuid}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          <Input
+                            type="number"
+                            min={0.1}
+                            step={0.5}
+                            className="w-full sm:w-28"
+                            value={newItemQuantity}
+                            onChange={(event) => {
+                              const value = Number(event.target.value);
+                              setNewItemQuantity(Number.isNaN(value) ? 0 : value);
+                            }}
+                            placeholder="Qtd."
+                          />
+                          <Button
+                            className="w-full sm:w-auto bg-[#5c4227] hover:bg-[#5c4227]/90"
+                            onClick={handleAddItemToTable}
+                            disabled={isAddingItem || !activeTable}
+                          >
+                            {isAddingItem ? 'Adicionando...' : 'Adicionar'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Nenhum item do cardápio disponível para adicionar.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Adicionar item</p>
+                      <p className="text-xs text-muted-foreground">
+                        Use o botão para escolher itens do cardápio.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="border-[#5c4227] text-[#5c4227] hover:bg-[#5c4227] hover:text-white"
+                      onClick={() => setShowAddForm(true)}
+                    >
+                      Adicionar
+                    </Button>
+                  </div>
+                )}
               </div>
-            ))}
+            ) : null}
+
+            <div className="space-y-3">
+              {activeTable?.items?.length ? (
+                activeTable.items.map((item) => (
+                  <div
+                    key={item.uuid}
+                    className="flex flex-col gap-3 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-base font-semibold text-foreground">{item.name}</p>
+                        {item.note ? (
+                          <p className="text-xs text-muted-foreground">Observação: {item.note}</p>
+                        ) : null}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-[#5c4227]">x{item.quantity}</p>
+                      </div>
+                    </div>
+                    {canManageItems ? (
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                        <Input
+                          type="number"
+                          min={0.1}
+                          step={0.5}
+                          max={item.quantity}
+                          className="w-full sm:w-32"
+                          value={removeQuantities[item.uuid] ?? 1}
+                          onChange={(event) => {
+                            const value = Number(event.target.value);
+                            handleRemoveQuantityChange(item.uuid, Number.isNaN(value) ? 0 : value);
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          className="border-[#5c4227] text-[#5c4227] hover:bg-[#5c4227] hover:text-white"
+                          onClick={() => handleRemoveItem(item.uuid)}
+                          disabled={removingItemId === item.uuid}
+                        >
+                          {removingItemId === item.uuid ? 'Removendo...' : 'Remover'}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-dashed border-muted/70 bg-white/60 p-4 text-center text-sm text-muted-foreground">
+                  Nenhum item vinculado a esta mesa.
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

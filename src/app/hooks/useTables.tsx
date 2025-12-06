@@ -18,8 +18,19 @@ export type OpenTable = {
   items?: TableItem[];
 };
 
+export type SettlementHistoryEntry = {
+  uuid: string;
+  ticket_number: number;
+  final_value: number;
+  additions_value?: number;
+  discounts_value?: number;
+  settled_by: string;
+  created_at: string;
+};
+
 export const useOpenTables = () => {
   const [tables, setTables] = useState<OpenTable[]>([]);
+  const [history, setHistory] = useState<SettlementHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -48,8 +59,13 @@ export const useOpenTables = () => {
       if (isClosed) return;
       try {
         const payload = JSON.parse(event.data);
-        if (payload?.event === 'open_tables' && Array.isArray(payload.tables)) {
-          setTables(payload.tables);
+        if (payload?.event === 'open_tables') {
+          if (Array.isArray(payload.tables)) {
+            setTables(payload.tables);
+          }
+          if (Array.isArray(payload.history)) {
+            setHistory(payload.history);
+          }
         } else {
           console.warn('Mensagem de WS ignorada', payload);
         }
@@ -74,5 +90,5 @@ export const useOpenTables = () => {
     };
   }, [requestTables]);
 
-  return { tables, isLoading, refetch: requestTables };
+  return { tables, history, isLoading, refetch: requestTables };
 };

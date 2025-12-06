@@ -23,7 +23,6 @@ import { X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import {  AuthContext, AuthProvider } from '@/context/AuthContext';
 import { Toaster } from 'sonner';
-import { useAuth } from '../hooks/useAuth';
 
 type LayoutShellProps = {
   children: ReactNode;
@@ -41,18 +40,25 @@ function LayoutShellContent({ children }: LayoutShellProps) {
     setLoading(false);
   }, []);
 
-  if (authStatus === 'unauthenticated') return null;
+  if (isLoginPage) {
+    return <main className="min-h-screen">{children}</main>;
+  }
 
-  if (loading) {
+  if (authStatus === 'unauthenticated') {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
+        <Spinner size="lg" />
+        <p className="text-sm text-muted-foreground">Sessão expirada, redirecionando…</p>
+      </main>
+    );
+  }
+
+  if (loading || authStatus === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner size="lg" />
       </div>
     );
-  }
-
-  if (isLoginPage) {
-    return <main className="min-h-screen">{children}</main>;
   }
 
   return (

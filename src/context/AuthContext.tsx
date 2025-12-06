@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useEffect, useState } from "react";
-import { useAuth } from "@/app/hooks/useAuth";
+import { createContext, useEffect, useRef, useState } from "react";
+import { AUTH_CHANGE_EVENT, useAuth } from "@/app/hooks/useAuth";
 import { useUtils } from "@/app/hooks/useUtils";
 
 
@@ -21,29 +21,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {  redirectToLogin, getNewAccessToken, accessToken, refreshToken, logout } = useAuth();
     const { showNotification } = useUtils();
     const [authStatus, setAuthStatus] = useState<AuthStatus>(AuthStatus.LOADING);
+    const [authCheckId, setAuthCheckId] = useState(0);
+    const hasRedirectedRef = useRef(false);
+
+    useEffect(() => {
+        const handleAuthChange = () => {
+            setAuthCheckId((prev) => prev + 1);
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
         const ensureAuthenticated = async () => {
+            const storedAccess = accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null);
+            const storedRefresh = refreshToken ?? (typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null);
             const accessExpiration = Number(localStorage.getItem("accessExpiration") || 0)
-            const isExpired = !accessToken || accessExpiration < Date.now() + 10_000;
+            const isExpired = !storedAccess || accessExpiration < Date.now() + 10_000;
 
-            if (!refreshToken) {
+            if (!storedRefresh) {
                 setAuthStatus(AuthStatus.UNAUTHENTICATED);
-                showNotification('Sessão expirada', 'error');
-                redirectToLogin();
                 return;
             }
 
             if (isExpired) {
                 try {
-                    await getNewAccessToken(refreshToken);
+                    await getNewAccessToken(storedRefresh);
                 } catch (error) {
                     if (!cancelled) {
                         setAuthStatus(AuthStatus.UNAUTHENTICATED);
-                        showNotification('Sessão expirada', 'error');
-                        redirectToLogin();
-                        logout();
                     }
                     return;
                 }
@@ -57,14 +72,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => {
             cancelled = true;
         }
-    }, [accessToken, refreshToken, logout]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [accessToken, refreshToken, authCheckId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        if (authStatus === AuthStatus.UNAUTHENTICATED) {
-            redirectToLogin();
-            return;
+        if (authStatus === AuthStatus.AUTHENTICATED) {
+            hasRedirectedRef.current = false;
         }
-    }, [authStatus, redirectToLogin]);
+    }, [authStatus]);
+
+    useEffect(() => {
+        if (authStatus !== AuthStatus.UNAUTHENTICATED) return;
+        if (hasRedirectedRef.current) return;
+        hasRedirectedRef.current = true;
+        showNotification('Sessão expirada', 'error');
+        logout();
+        redirectToLogin();
+    }, [authStatus]); // intencionalmente não depende das funções para evitar rerun infinito
 
     return (
         <AuthContext.Provider value={{ authStatus }}>

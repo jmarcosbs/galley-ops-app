@@ -118,8 +118,8 @@ return (
 						<option value="" disabled>
 							Escolha uma opção
 						</option>
-						<option value="cozinha">Cozinha</option>
-						<option value="copa">Copa</option>
+						<option value="kitchen">Cozinha</option>
+						<option value="bar">Copa</option>
 					</select>
 					<p className="text-xs text-muted-foreground">Pra onde vai o pedido?</p>
 				</div>

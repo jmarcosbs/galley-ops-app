@@ -1,8 +1,18 @@
 "use client"
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useUtils } from "./useUtils";
+
+export const AUTH_CHANGE_EVENT = "auth-change";
+
+type UserInfo = {
+    username: string;
+    first_name?: string;
+    last_name?: string;
+    is_superuser: boolean;
+    isSuperAdmin: boolean;
+};
 
 export const useAuth = () => {
     const router = useRouter();
@@ -18,12 +28,45 @@ export const useAuth = () => {
         const stored = localStorage.getItem('accessExpiration');
         return stored ? Number(stored) : null;
     });
+    const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+    const fetchUserInfo = async (token: string | null) => {
+        if (!token) {
+            setUserInfo(null);
+            return;
+        }
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/users/me/`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            if (!response.ok) {
+                throw new Error("Failed to fetch user info");
+            }
+            const data = await response.json();
+            setUserInfo(data);
+        } catch (error) {
+            console.error("Unable to fetch user info", error);
+            setUserInfo(null);
+        }
+    };
+
+    useEffect(() => {
+        fetchUserInfo(accessToken);
+    }, [accessToken]);
 
     const getAccessExpiration = (token: string | null) : number => {
         if (!token) return 0;
         const decoded = jwtDecode<{ exp?: number }>(token);
         // exp vem em segundos; converte para ms para comparar com Date.now()
         return decoded?.exp ? decoded.exp * 1000 : 0;
+    }
+
+    const emitAuthChange = () : void => {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+        }
     }
 
     const storeAuthTokens = (accessToken: string, refreshToken: string) : void => {
@@ -36,17 +79,21 @@ export const useAuth = () => {
             localStorage.setItem('refreshToken', refreshToken);
             localStorage.setItem('accessExpiration', String(expirationMs));
         }
+        emitAuthChange();
+        fetchUserInfo(accessToken);
     }
 
     const removeAuthTokens = () : void => {
         setAccessToken(null);
         setRefreshToken(null);
         setAccessExpiration(null);
+        setUserInfo(null);
         if (typeof window !== 'undefined') {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('accessExpiration');
         }
+        emitAuthChange();
     }
 
     const getNewAccessToken = async (refreshToken: string | null) : Promise<string> => {
@@ -152,5 +199,7 @@ export const useAuth = () => {
         router.replace('/login');
     }
 
-    return { login, makeAuthenticatedRequest, redirectToLogin, getNewAccessToken, logout, accessToken, refreshToken, accessExpiration };
+    const isSuperAdmin = Boolean(userInfo?.is_superuser || userInfo?.isSuperAdmin);
+
+    return { login, makeAuthenticatedRequest, redirectToLogin, getNewAccessToken, logout, accessToken, refreshToken, accessExpiration, isSuperAdmin, userInfo };
 }
