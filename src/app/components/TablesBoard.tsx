@@ -20,6 +20,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '../hooks/useAuth';
 import { useUtils } from '../hooks/useUtils';
 import { useMenu } from '../hooks/useMenu';
+import { extractApiErrorMessage } from '@/lib/api-error';
 
 type GroupedActiveItem = {
   key: string;
@@ -288,8 +289,9 @@ export function TablesBoard() {
       );
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body?.detail || 'Erro ao reimprimir cupom');
+        const body = await response.json().catch(() => null);
+        const errorMessage = extractApiErrorMessage(body) || 'Erro ao reimprimir cupom';
+        throw new Error(errorMessage);
       }
 
       showNotification('Cupom enviado para impressão', 'success');
@@ -343,8 +345,9 @@ export function TablesBoard() {
       );
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body?.detail || 'Erro ao cancelar fechamento');
+        const body = await response.json().catch(() => null);
+        const errorMessage = extractApiErrorMessage(body) || 'Erro ao cancelar fechamento';
+        throw new Error(errorMessage);
       }
 
       showNotification('Fechamento cancelado com sucesso', 'success');
@@ -424,8 +427,9 @@ export function TablesBoard() {
       );
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body?.detail || 'Erro ao fechar mesa');
+        const body = await response.json().catch(() => null);
+        const errorMessage = extractApiErrorMessage(body) || 'Erro ao fechar mesa';
+        throw new Error(errorMessage);
       }
 
       showNotification('Fechamento registrado', 'success');
@@ -460,8 +464,9 @@ export function TablesBoard() {
     );
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      throw new Error(body?.detail || 'Erro ao remover item');
+      const body = await response.json().catch(() => null);
+      const errorMessage = extractApiErrorMessage(body) || 'Erro ao remover item';
+      throw new Error(errorMessage);
     }
     return true;
   };
@@ -484,8 +489,9 @@ export function TablesBoard() {
     );
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      throw new Error(body?.detail || 'Erro ao atualizar item');
+      const body = await response.json().catch(() => null);
+      const errorMessage = extractApiErrorMessage(body) || 'Erro ao atualizar item';
+      throw new Error(errorMessage);
     }
     return true;
   };
@@ -595,8 +601,9 @@ export function TablesBoard() {
       );
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body?.detail || 'Erro ao adicionar item');
+        const body = await response.json().catch(() => null);
+        const errorMessage = extractApiErrorMessage(body) || 'Erro ao adicionar item';
+        throw new Error(errorMessage);
       }
 
       showNotification('Item adicionado', 'success');

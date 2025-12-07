@@ -14,6 +14,7 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useOrderContext } from '../../context/OrderContext';
 import { useAuth } from '../hooks/useAuth';
 import { useUtils } from '../hooks/useUtils';
+import { extractApiErrorMessage } from '@/lib/api-error';
 
 interface FeedbackState {
     open: boolean;
@@ -87,21 +88,13 @@ export default function SendOrderButton() {
                 return { success: true } as const;
             }
 
-            let errorBody: any = {};
-            let errorText = '';
-            try {
-                errorBody = await response.json();
-            } catch (error) {
-                try {
-                    errorText = await response.text();
-                } catch (_err) {
-                    // ignore
-                }
-            }
+            const errorClone = response.clone();
+            const errorBody = await response.json().catch(() => null);
+            const errorTextRaw = await errorClone.text().catch(() => '');
+            const errorText = errorTextRaw.trim();
             console.error('Erro na resposta da API:', errorBody || errorText);
             const detail =
-                errorBody?.detail ||
-                errorBody?.message ||
+                extractApiErrorMessage(errorBody) ||
                 errorText ||
                 `Erro HTTP ${response.status}`;
             return { success: false, message: `Erro: ${detail}` } as const;
