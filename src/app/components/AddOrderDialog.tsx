@@ -86,7 +86,7 @@ export function AddOrderDialog({ trigger, onConfirm }: AddOrderDialogProps) {
       scannerRef.current?.destroy()
       scannerRef.current = null
     }
-  }, [open])
+  }, [open, onConfirm])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

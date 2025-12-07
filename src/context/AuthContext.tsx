@@ -23,6 +23,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [authStatus, setAuthStatus] = useState<AuthStatus>(AuthStatus.LOADING);
     const [authCheckId, setAuthCheckId] = useState(0);
     const hasRedirectedRef = useRef(false);
+    const logoutRef = useRef(logout);
+    const redirectToLoginRef = useRef(redirectToLogin);
+    const showNotificationRef = useRef(showNotification);
+
+    useEffect(() => {
+        logoutRef.current = logout;
+    }, [logout]);
+
+    useEffect(() => {
+        redirectToLoginRef.current = redirectToLogin;
+    }, [redirectToLogin]);
+
+    useEffect(() => {
+        showNotificationRef.current = showNotification;
+    }, [showNotification]);
 
     useEffect(() => {
         const handleAuthChange = () => {
@@ -84,10 +99,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (authStatus !== AuthStatus.UNAUTHENTICATED) return;
         if (hasRedirectedRef.current) return;
         hasRedirectedRef.current = true;
-        showNotification('Sessão expirada', 'error');
-        logout();
-        redirectToLogin();
-    }, [authStatus]); // intencionalmente não depende das funções para evitar rerun infinito
+        showNotificationRef.current('Sessão expirada', 'error');
+        logoutRef.current();
+        redirectToLoginRef.current();
+    }, [authStatus]);
 
     return (
         <AuthContext.Provider value={{ authStatus }}>

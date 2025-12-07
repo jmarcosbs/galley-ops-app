@@ -139,7 +139,7 @@ export function TablesBoard() {
     if (fresh) {
       setActiveTable(fresh);
     }
-  }, [tables, activeTable?.uuid]);
+  }, [tables, activeTable]);
 
   useEffect(() => {
     if (!itemsDialogOpen) {
