@@ -21,6 +21,7 @@ type MenuSubItem = {
   dishUniqueId: string;
   name: string;
   departiment: string;
+  isAvailable: boolean;
   description?: string;
   category: string;
   optionGroups: string[][];
@@ -58,6 +59,7 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
   const minQuantity = useMemo(() => (selectedItem?.departiment === 'cozinha' ? 0.5 : 1), [selectedItem]);
 
   const handleSelectItem = (item: MenuSubItem) => {
+    if (!item.isAvailable) return;
     setSelectedItem(item);
     setQuantity(1);
     setOptionGroups(item.optionGroups ?? []);
@@ -305,7 +307,11 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
                 key={item.dishUniqueId}
                 type="button"
                 onClick={() => handleSelectItem(item)}
-                className="flex w-full items-center justify-between rounded-xl border border-muted/60 bg-white px-4 py-3 text-left shadow-sm transition hover:border-[#5c4227]"
+                disabled={!item.isAvailable}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-xl border border-muted/60 bg-white px-4 py-3 text-left shadow-sm transition hover:border-[#5c4227]",
+                  !item.isAvailable && "cursor-not-allowed opacity-40 hover:border-muted/60"
+                )}
               >
                 <div>
                   <p className="text-sm font-semibold text-foreground">{item.name}</p>

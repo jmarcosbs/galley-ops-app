@@ -10,6 +10,7 @@ type MenuSubItemType = {
   name: string;
   departiment: string;
   description?: string;
+  isAvailable: boolean;
   category: string;
   dishUniqueId: string;
   optionGroups: string[][];
@@ -31,6 +32,7 @@ export default function Items() {
         id: item.uuid,
         name: item.name,
         departiment: normalizeDepartment(item.department),
+        isAvailable: item.is_available,
         description: item.description,
         category: categoryName,
         optionGroups: (item.side_dish_options ?? []).map((group) =>
