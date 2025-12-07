@@ -129,6 +129,7 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
     const newDish: Dish = {
       id: selectedItem.id,
       unique_id: `${selectedItem.id}_${Date.now()}`,
+      custom_dish: null,
       name: selectedItem.name,
       departiment: selectedItem.departiment,
       amount: quantity,
