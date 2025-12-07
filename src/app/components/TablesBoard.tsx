@@ -737,7 +737,7 @@ export function TablesBoard() {
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button
                           variant="ghost"
-                          size="xs"
+                          size="sm"
                           className="h-7 gap-1 px-2 text-xs"
                           onClick={() => handleReprintSettlement(entry.uuid)}
                           disabled={isReprintingCurrent}
@@ -748,7 +748,7 @@ export function TablesBoard() {
                         {canShowCancel ? (
                           <Button
                             variant="destructive"
-                            size="xs"
+                            size="sm"
                             className="h-7 px-2 text-xs"
                             onClick={() => handleOpenCancelDialog(entry)}
                             disabled={isCancelingCurrent}
