@@ -17,6 +17,7 @@ export type OpenTable = {
   updated_at: string;
   total?: number | null;
   items?: TableItem[];
+  label?: string;
 };
 
 export type SettlementHistoryEntry = {
