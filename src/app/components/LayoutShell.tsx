@@ -18,10 +18,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { TablesBoard } from '@/app/components/TablesBoard';
+import { DashboardDialog } from '@/app/components/DashboardDialog';
 import { OrderProvider } from '@/context/OrderContext';
 import { X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import {  AuthContext, AuthProvider } from '@/context/AuthContext';
+import { useAuth } from '@/app/hooks/useAuth';
 import { Toaster } from 'sonner';
 
 type LayoutShellProps = {
@@ -31,10 +33,12 @@ type LayoutShellProps = {
 function LayoutShellContent({ children }: LayoutShellProps) {
   const [loading, setLoading] = useState(true);
   const [tablesOpen, setTablesOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
 
   const { authStatus } = useContext(AuthContext)!;
+  const { isSuperAdmin } = useAuth();
 
   useEffect(() => {
     setLoading(false);
@@ -74,7 +78,7 @@ function LayoutShellContent({ children }: LayoutShellProps) {
             </p>
           </div>
           <NavigationMenu className="w-full justify-end">
-            <NavigationMenuList className="w-full border-white/30 bg-white/10 text-white backdrop-blur">
+            <NavigationMenuList className="w-full gap-2 border-white/30 bg-white/10 text-white backdrop-blur">
               <NavigationMenuItem>
                 <Dialog open={tablesOpen} onOpenChange={setTablesOpen}>
                   <DialogTrigger asChild>
@@ -117,6 +121,29 @@ function LayoutShellContent({ children }: LayoutShellProps) {
                   </DialogContent>
                 </Dialog>
               </NavigationMenuItem>
+              {isSuperAdmin && (
+                <NavigationMenuItem>
+                  <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className={`${navigationMenuTriggerStyle} text-[15px] bg-white text-[#5c4227] hover:bg-white/90`}
+                        aria-label="Abrir dashboard"
+                      >
+                        Dashboard
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl border-none bg-background px-0 py-0 [&>button:last-child]:hidden">
+                      <DialogHeader className="sr-only">
+                        <DialogTitle>Dashboard</DialogTitle>
+                      </DialogHeader>
+                      <div className="p-5">
+                        <DashboardDialog open={dashboardOpen} />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </NavigationMenuItem>
+              )}
             </NavigationMenuList>
           </NavigationMenu>
         </div>
