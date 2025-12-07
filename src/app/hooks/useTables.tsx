@@ -27,6 +27,7 @@ export type SettlementHistoryEntry = {
   discounts_value?: number;
   settled_by: string;
   created_at: string;
+  can_cancel?: boolean;
 };
 
 export const useOpenTables = () => {

@@ -7,12 +7,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Minus, Plus, ReceiptText, RefreshCcw, Printer } from 'lucide-react';
-import { useOpenTables, OpenTable } from '../hooks/useTables';
+import { useOpenTables, OpenTable, SettlementHistoryEntry } from '../hooks/useTables';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '../hooks/useAuth';
 import { useUtils } from '../hooks/useUtils';
@@ -70,6 +73,11 @@ export function TablesBoard() {
     type: 'increase' | 'decrease';
   } | null>(null);
   const [reprintingSettlementId, setReprintingSettlementId] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelingSettlement, setCancelingSettlement] =
+    useState<SettlementHistoryEntry | null>(null);
+  const [cancelJustification, setCancelJustification] = useState('');
+  const [isCancellingSettlement, setIsCancellingSettlement] = useState(false);
   const [selectedDishId, setSelectedDishId] = useState<string>('');
   const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -81,6 +89,7 @@ export function TablesBoard() {
   const { showNotification } = useUtils();
   const lastItemsCountRef = useRef<number | null>(null);
   const canManageItems = isSuperAdmin;
+  const isCancelJustificationValid = cancelJustification.trim().length >= 15;
 
   const handleShowItems = (table: OpenTable) => {
     setActiveTable(table);
@@ -292,6 +301,63 @@ export function TablesBoard() {
       );
     } finally {
       setReprintingSettlementId(null);
+    }
+  };
+
+  const handleOpenCancelDialog = (entry: SettlementHistoryEntry) => {
+    if (!isSuperAdmin || !entry.can_cancel) return;
+    setCancelingSettlement(entry);
+    setCancelJustification('');
+    setCancelDialogOpen(true);
+  };
+
+  const handleCloseCancelDialog = (force = false) => {
+    if (!force && isCancellingSettlement) return;
+    setCancelDialogOpen(false);
+    setCancelingSettlement(null);
+    setCancelJustification('');
+  };
+
+  const handleConfirmCancelSettlement = async () => {
+    if (!cancelingSettlement) return;
+    const justification = cancelJustification.trim();
+    if (justification.length < 15) {
+      showNotification('Informe uma justificativa com ao menos 15 caracteres.', 'error');
+      return;
+    }
+
+    setIsCancellingSettlement(true);
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-settlement/cancel/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            settlement_uuid: cancelingSettlement.uuid,
+            justification,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.detail || 'Erro ao cancelar fechamento');
+      }
+
+      showNotification('Fechamento cancelado com sucesso', 'success');
+      handleCloseCancelDialog(true);
+      refetch();
+    } catch (error) {
+      console.error(error);
+      showNotification(
+        error instanceof Error ? error.message : 'Não foi possível cancelar o fechamento',
+        'error',
+      );
+    } finally {
+      setIsCancellingSettlement(false);
     }
   };
 
@@ -642,34 +708,53 @@ export function TablesBoard() {
         </p>
         <div className="space-y-2">
           {history.length ? (
-            history.map((entry) => (
-              <div
-                key={entry.uuid}
-                className="flex flex-col gap-1 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
-              >
-                <div className="flex items-center justify-between text-sm font-semibold text-[#5c4227]">
-                  <div className="flex flex-col">
-                    <span>Mesa {entry.ticket_number}</span>
-                    <p className="text-xs font-normal text-muted-foreground">
-                      Fechada por {entry.settled_by} em {formatSettlementDate(entry.created_at)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      className="h-7 gap-1 px-2 text-xs"
-                      onClick={() => handleReprintSettlement(entry.uuid)}
-                      disabled={reprintingSettlementId === entry.uuid}
-                    >
-                      <Printer className="h-3 w-3" />
-                      {reprintingSettlementId === entry.uuid ? 'Reimprimindo...' : 'Reimprimir'}
-                    </Button>
+            history.map((entry) => {
+              const isReprintingCurrent = reprintingSettlementId === entry.uuid;
+              const isCancelingCurrent =
+                isCancellingSettlement && cancelingSettlement?.uuid === entry.uuid;
+              const canShowCancel = Boolean(isSuperAdmin && entry.can_cancel);
+              return (
+                <div
+                  key={entry.uuid}
+                  className="flex flex-col gap-1 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
+                >
+                  <div className="flex items-center justify-between text-sm font-semibold text-[#5c4227]">
+                    <div className="flex flex-col">
+                      <span>Mesa {entry.ticket_number}</span>
+                      <p className="text-xs font-normal text-muted-foreground">
+                        Fechada por {entry.settled_by} em {formatSettlementDate(entry.created_at)}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          className="h-7 gap-1 px-2 text-xs"
+                          onClick={() => handleReprintSettlement(entry.uuid)}
+                          disabled={isReprintingCurrent}
+                        >
+                          <Printer className="h-3 w-3" />
+                          {isReprintingCurrent ? 'Reimprimindo...' : 'Reimprimir'}
+                        </Button>
+                        {canShowCancel ? (
+                          <Button
+                            variant="destructive"
+                            size="xs"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => handleOpenCancelDialog(entry)}
+                            disabled={isCancelingCurrent}
+                          >
+                            {isCancelingCurrent ? 'Cancelando...' : 'Cancelar Fechamento'}
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="rounded-lg border border-dashed border-muted/70 bg-white/60 px-4 py-4 text-center text-sm text-muted-foreground">
               Nenhum fechamento registrado recentemente.
@@ -929,6 +1014,68 @@ export function TablesBoard() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={cancelDialogOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setCancelDialogOpen(true);
+          } else {
+            handleCloseCancelDialog();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar fechamento</DialogTitle>
+            <DialogDescription>
+              Esta ação reabrirá a comanda selecionada e enviará o cancelamento da NFC-e referente a
+              este fechamento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-muted/70 bg-muted/40 p-3 text-sm text-muted-foreground">
+              <p className="text-base font-semibold text-foreground">
+                Mesa {cancelingSettlement?.ticket_number ?? '—'}
+              </p>
+              <p>Valor: {currencyFormatter.format(cancelingSettlement?.final_value ?? 0)}</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground" htmlFor="cancel-justification">
+                Justificativa do cancelamento
+              </label>
+              <Textarea
+                id="cancel-justification"
+                rows={4}
+                placeholder="Descreva o motivo do cancelamento"
+                value={cancelJustification}
+                onChange={(event) => setCancelJustification(event.target.value)}
+                disabled={isCancellingSettlement}
+              />
+              <p className="text-xs text-muted-foreground">
+                Informe pelo menos 15 caracteres. A justificativa será enviada junto ao cancelamento
+                fiscal.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => handleCloseCancelDialog()}
+              disabled={isCancellingSettlement}
+            >
+              Voltar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmCancelSettlement}
+              disabled={!isCancelJustificationValid || isCancellingSettlement}
+            >
+              {isCancellingSettlement ? 'Cancelando...' : 'Confirmar cancelamento'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
