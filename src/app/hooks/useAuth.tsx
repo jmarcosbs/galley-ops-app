@@ -155,12 +155,15 @@ export const useAuth = () => {
     }
 
     const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) : Promise<Response> => {
-        const baseHeaders: HeadersInit = {
-            ...(options.headers || {}),
+        const buildHeaders = (token?: string | null) => {
+            const headers = new Headers(options.headers ?? undefined);
+            if (token) {
+                headers.set('Authorization', `Bearer ${token}`);
+            }
+            return headers;
         };
-        if (accessToken) {
-            baseHeaders['Authorization'] = `Bearer ${accessToken}`;
-        }
+
+        const baseHeaders = buildHeaders(accessToken);
 
         try {
             let response = await fetch(url, {
@@ -171,10 +174,7 @@ export const useAuth = () => {
             if (response.status === 401 || response.status === 403) {
                 try {
                     const newAccessToken = await getNewAccessToken(refreshToken);
-                    const retryHeaders: HeadersInit = {
-                        ...(options.headers || {}),
-                        'Authorization': `Bearer ${newAccessToken}`,
-                    };
+                    const retryHeaders = buildHeaders(newAccessToken);
                     response = await fetch(url, {
                         ...options,
                         headers: retryHeaders,
