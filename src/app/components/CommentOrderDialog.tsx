@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useOrderContext } from '../../context/OrderContext';
+import type { SelectedSideDish } from '../../context/OrderContext';
 import { cn } from '@/lib/utils';
 import { SideDishOption } from '../types/menu';
 
@@ -58,17 +59,19 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
 
     const handleAddNote = () => {
         const selectedSideDishes =
-            dish?.sideDishOptions?.map((option, index) => {
+            dish?.sideDishOptions?.reduce<SelectedSideDish[]>((acc, option, index) => {
                 const selectedUuid =
                     selectedOptions[index] || option.default_side_dish?.uuid || option.side_dishes[0]?.uuid;
                 const selected = option.side_dishes.find((item) => item.uuid === selectedUuid);
-                if (!selected) return null;
-                return {
-                    optionUuid: option.uuid,
-                    sideDishUuid: selected.uuid,
-                    name: selected.name,
-                };
-            }).filter(Boolean) ?? [];
+                if (selected) {
+                    acc.push({
+                        optionUuid: option.uuid,
+                        sideDishUuid: selected.uuid,
+                        name: selected.name,
+                    });
+                }
+                return acc;
+            }, []) ?? [];
 
         const finalNote =
             tempNote +
