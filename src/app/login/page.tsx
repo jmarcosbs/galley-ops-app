@@ -1,11 +1,10 @@
 'use client';
 
 import { Anchor, Lock, Mail } from 'lucide-react';
-import Form from 'next/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '../hooks/useAuth';
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 
 export default function LoginPage() {
@@ -14,14 +13,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
     try {
-      await login(username, password);
-    } finally {
+      const success = await login(username, password);
+      if (!success) {
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error('Erro ao realizar login', error);
       setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#0d0804] via-[#2b1a10] to-[#5c4227] text-white">
@@ -54,7 +60,7 @@ export default function LoginPage() {
               <h2 className="text-2xl font-semibold text-[#2b1a0f]">Login</h2>
             </div>
 
-            <Form action={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[#2b1a0f]">Usuário</label>
                 <div className="relative">
@@ -97,16 +103,16 @@ export default function LoginPage() {
               >
                 Entrar
               </Button>
-            </Form>
+            </form>
           </div>
         </div>
       </div>
 
       {isSubmitting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-8 py-6 text-[#2b1a0f] shadow-2xl">
-            <Spinner size="lg" />
-            <p className="text-sm font-medium">Verificando credenciais…</p>
+        <div className="fixed inset-0 z-50 bg-white/90 text-[#2b1a0f]">
+          <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
+            <Spinner size="lg" aria-label="Carregando" />
+            <p className="text-sm text-muted-foreground">Entrando, redirecionando…</p>
           </div>
         </div>
       )}
