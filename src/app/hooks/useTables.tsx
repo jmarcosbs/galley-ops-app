@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { WS_BASE_URL } from '@/lib/env';
 
 export type TableItem = {
   uuid: string;
@@ -46,7 +47,7 @@ export const useOpenTables = () => {
   }, []);
 
   useEffect(() => {
-    const wsBase = process.env.NEXT_PUBLIC_WS_BASE_URL;
+    const wsBase = WS_BASE_URL;
     if (!wsBase) {
       console.warn('NEXT_PUBLIC_WS_BASE_URL não definido; painel de mesas desativado.');
       setIsLoading(false);

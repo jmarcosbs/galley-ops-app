@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
+import { API_BASE_URL } from "@/lib/env";
 import { useUtils } from "./useUtils";
 
 export const AUTH_CHANGE_EVENT = "auth-change";
@@ -36,7 +37,7 @@ export const useAuth = () => {
             return;
         }
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/me/`, {
+            const response = await fetch(`${API_BASE_URL}/api/users/me/`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -100,7 +101,7 @@ export const useAuth = () => {
         if (!refreshToken) {
             throw new Error('No refresh token');
         }
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/token/refresh/`, {
+        const response = await fetch(`${API_BASE_URL}/api/users/token/refresh/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ export const useAuth = () => {
 
     const login = async (username: string, password: string) : Promise<boolean> => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/token/`, {
+            const response = await fetch(`${API_BASE_URL}/api/users/token/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

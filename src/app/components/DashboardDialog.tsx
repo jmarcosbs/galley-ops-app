@@ -9,6 +9,7 @@ import { RefreshCcw, X, CalendarDays } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUtils } from '../hooks/useUtils';
 import { extractApiErrorMessage } from '@/lib/api-error';
+import { API_BASE_URL } from '@/lib/env';
 
 type DashboardEntry = {
   uuid: string;
@@ -74,7 +75,7 @@ export function DashboardDialog({ open }: DashboardDialogProps) {
 
   const fetchSummary = useCallback(
     async (dateValue: string) => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      const baseUrl = API_BASE_URL;
       if (!baseUrl) {
         notificationRef.current('URL da API não configurada.', 'error');
         return;

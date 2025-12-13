@@ -15,6 +15,7 @@ import { useOrderContext } from '../../context/OrderContext';
 import { useAuth } from '../hooks/useAuth';
 import { useUtils } from '../hooks/useUtils';
 import { extractApiErrorMessage } from '@/lib/api-error';
+import { API_BASE_URL } from '@/lib/env';
 
 interface FeedbackState {
     open: boolean;
@@ -30,9 +31,6 @@ export default function SendOrderButton() {
     const [isSending, setIsSending] = useState(false);
     const { makeAuthenticatedRequest } = useAuth();
     const { showNotification } = useUtils();
-
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    const fullUrl = `${apiUrl}/api/order/`;    
 
     const handleSubmit = async () => {
         let errors = '';
@@ -72,6 +70,13 @@ export default function SendOrderButton() {
     };
 
     const sendOrder = async (): Promise<SendOrderResult> => {
+        if (!API_BASE_URL) {
+            return {
+                success: false,
+                message: 'URL da API não está configurada. Contate o administrador.',
+            } as const;
+        }
+        const fullUrl = `${API_BASE_URL}/api/order/`;
         const orderData = getOrderAsJson();
     
         try {
