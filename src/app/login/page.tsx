@@ -6,14 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '../hooks/useAuth';
 import { useState } from 'react';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async () => {
-    await login(username, password);
+    setIsSubmitting(true);
+    try {
+      await login(username, password);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -84,7 +91,9 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="h-12 w-full text-base font-semibold shadow-lg shadow-[#5c4227]/25 transition hover:shadow-[#5c4227]/40"
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+                className="h-12 w-full text-base font-semibold shadow-lg shadow-[#5c4227]/25 transition hover:shadow-[#5c4227]/40 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 Entrar
               </Button>
@@ -92,6 +101,15 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {isSubmitting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-8 py-6 text-[#2b1a0f] shadow-2xl">
+            <Spinner size="lg" />
+            <p className="text-sm font-medium">Verificando credenciais…</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
