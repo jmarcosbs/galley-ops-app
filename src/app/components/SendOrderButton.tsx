@@ -31,7 +31,7 @@ export default function SendOrderButton() {
     const { makeAuthenticatedRequest } = useAuth();
     const { showNotification } = useUtils();
 
-    const apiUrl = process.env.NEXT_PUBLIC_LOCAL_API_URL
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     const fullUrl = `${apiUrl}/api/order/`;    
 
     const handleSubmit = async () => {

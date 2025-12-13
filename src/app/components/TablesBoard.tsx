@@ -282,7 +282,7 @@ export function TablesBoard() {
     setReprintingSettlementId(settlementUuid);
     try {
       const response = await makeAuthenticatedRequest(
-        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-settlement/${settlementUuid}/reprint/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ticket-settlement/${settlementUuid}/reprint/`,
         {
           method: 'POST',
         },
@@ -331,7 +331,7 @@ export function TablesBoard() {
     setIsCancellingSettlement(true);
     try {
       const response = await makeAuthenticatedRequest(
-        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-settlement/cancel/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ticket-settlement/cancel/`,
         {
           method: 'POST',
           headers: {
@@ -413,7 +413,7 @@ export function TablesBoard() {
     setIsClosing(true);
     try {
       const response = await makeAuthenticatedRequest(
-        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-settlement/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ticket-settlement/`,
         {
           method: 'POST',
           headers: {
@@ -449,7 +449,7 @@ export function TablesBoard() {
   const removeItemQuantity = async (itemId: string, quantity: number) => {
     if (!activeTable) return false;
     const response = await makeAuthenticatedRequest(
-      `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-items/remove/`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ticket-items/remove/`,
       {
         method: 'POST',
         headers: {
@@ -474,7 +474,7 @@ export function TablesBoard() {
   const increaseItemQuantity = async (itemId: string, quantity: number) => {
     if (!activeTable) return false;
     const response = await makeAuthenticatedRequest(
-      `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-items/increase/`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ticket-items/increase/`,
       {
         method: 'POST',
         headers: {
@@ -586,7 +586,7 @@ export function TablesBoard() {
     setIsAddingItem(true);
     try {
       const response = await makeAuthenticatedRequest(
-        `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/ticket-items/add/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ticket-items/add/`,
         {
           method: 'POST',
           headers: {

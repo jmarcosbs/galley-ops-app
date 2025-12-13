@@ -46,9 +46,9 @@ export const useOpenTables = () => {
   }, []);
 
   useEffect(() => {
-    const wsBase = process.env.NEXT_PUBLIC_WS_URL;
+    const wsBase = process.env.NEXT_PUBLIC_WS_BASE_URL;
     if (!wsBase) {
-      console.warn('NEXT_PUBLIC_WS_URL não definido; painel de mesas desativado.');
+      console.warn('NEXT_PUBLIC_WS_BASE_URL não definido; painel de mesas desativado.');
       setIsLoading(false);
       return;
     }

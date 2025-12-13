@@ -12,7 +12,7 @@ export const useMenu = () => {
     const fetchMenu = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/menu/`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/menu/`, {
           cache: 'no-store',
           signal: abortController.signal,
         });

@@ -74,7 +74,7 @@ export function DashboardDialog({ open }: DashboardDialogProps) {
 
   const fetchSummary = useCallback(
     async (dateValue: string) => {
-      const baseUrl = process.env.NEXT_PUBLIC_LOCAL_API_URL;
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
       if (!baseUrl) {
         notificationRef.current('URL da API não configurada.', 'error');
         return;

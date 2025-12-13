@@ -36,7 +36,7 @@ export const useAuth = () => {
             return;
         }
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/users/me/`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/me/`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -100,7 +100,7 @@ export const useAuth = () => {
         if (!refreshToken) {
             throw new Error('No refresh token');
         }
-        const response = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/users/token/refresh/`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/token/refresh/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ export const useAuth = () => {
 
     const login = async (username: string, password: string) : Promise<boolean> => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/users/token/`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/token/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
