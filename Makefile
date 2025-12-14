@@ -1,7 +1,7 @@
 .PHONY: build deploy nginx-check nginx-reload all
 
 # Diretório de destino no servidor
-DEST_DIR=/var/www/pedidos.marinheiros.com.br
+DEST_DIR=/var/www/pedidos.restaurantemarinheiros.com.br
 
 build:
 	npm run build

@@ -8,7 +8,7 @@ const APP_DEFAULT_TITLE = "Marinheiros Pedidos";
 const APP_TITLE_TEMPLATE = "%s";
 const APP_DESCRIPTION = ":)";
 
-const APPLE_STARTUP_IMAGES = [
+const APPLE_STARTUP_IMAGES: { url: string; media: string }[] = [
   {
     url: "/ios/splash/apple-splash-2048-2732.jpg",
     media:
@@ -209,7 +209,7 @@ const APPLE_STARTUP_IMAGES = [
     media:
       "(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)",
   },
-] as const;
+];
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
