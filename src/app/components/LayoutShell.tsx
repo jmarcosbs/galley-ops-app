@@ -44,6 +44,20 @@ function LayoutShellContent({ children }: LayoutShellProps) {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      typeof window !== 'undefined' &&
+      'serviceWorker' in navigator
+    ) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .catch((error) => {
+          console.error('Erro ao registrar o service worker', error);
+        });
+    }
+  }, []);
+
   if (isLoginPage) {
     return <main className="min-h-screen">{children}</main>;
   }
