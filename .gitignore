@@ -39,5 +39,6 @@ next-env.d.ts
 .env.test.local
 .env.production.local
 .env
+.env.production
 
 sw.js.map
