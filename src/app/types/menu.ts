@@ -18,6 +18,7 @@ export type MenuDish = {
   name: string;
   description: string;
   is_available: boolean;
+  show_on_public_menu: boolean;
   price: number;
   department?: string;
   side_dish_options: SideDishOption[];
