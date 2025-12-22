@@ -41,7 +41,6 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
   const [optionGroups, setOptionGroups] = useState<string[][]>([]);
   const [sideDishOptions, setSideDishOptions] = useState<SideDishOption[]>([]);
   const [selectedSideDishes, setSelectedSideDishes] = useState<Record<number, string>>({});
-  const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
   const [itemNote, setItemNote] = useState<string>('');
 
   useEffect(() => {
@@ -76,15 +75,8 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
       },
       {},
     );
+
     setSelectedSideDishes(defaults);
-    setSelectedOptions(
-      item.optionGroups.reduce<Record<number, string>>((acc, group, index) => {
-        if (group.length > 0) {
-          acc[index] = group[0];
-        }
-        return acc;
-      }, {})
-    );
   };
 
   const increment = () => setQuantity((prev) => Number((prev + step).toFixed(2)));
@@ -212,32 +204,26 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
               <p className="text-xs uppercase text-muted-foreground">{selectedItem.category}</p>
             </div>
 
-            {optionGroups.length > 0 ? (
+            {sideDishOptions.length > 0 ? (
               <div className="space-y-4">
-                {optionGroups.map((group, groupIndex) => (
-                  <div key={groupIndex} className="space-y-2">
+                {sideDishOptions.map((option, groupIndex) => (
+                  <div key={option.uuid ?? groupIndex} className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#5c4227]">
                       Escolha {groupIndex + 1}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {group.map((option, idx) => {
-                        const isSelected = selectedOptions[groupIndex] === option;
+                      {option.side_dishes.map((item) => {
+                        const isSelected = selectedSideDishes[groupIndex] === item.uuid;
+
                         return (
                           <button
                             type="button"
-                            key={`${option}-${idx}`}
+                            key={item.uuid}
                             onClick={() => {
-                              setSelectedOptions((prev) => ({ ...prev, [groupIndex]: option }));
-                              const sideDishOption = sideDishOptions?.[groupIndex];
-                              const matchedSideDish = sideDishOption?.side_dishes.find(
-                                (sd) => sd.name === option,
-                              );
-                              if (matchedSideDish) {
-                                setSelectedSideDishes((prev) => ({
-                                  ...prev,
-                                  [groupIndex]: matchedSideDish.uuid,
-                                }));
-                              }
+                              setSelectedSideDishes((prev) => ({
+                                ...prev,
+                                [groupIndex]: item.uuid,
+                              }));
                             }}
                             className={cn(
                               'rounded-full border px-4 py-1 text-sm font-medium transition',
@@ -246,7 +232,7 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
                                 : 'border-[#5c4227]/30 text-[#5c4227] hover:bg-[#f4ece3]',
                             )}
                           >
-                            {option}
+                            {item.name}
                           </button>
                         );
                       })}
