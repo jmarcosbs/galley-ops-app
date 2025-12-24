@@ -800,23 +800,25 @@ export function TablesBoard() {
                         Fechada por {entry.settled_by} em {formatSettlementDate(entry.created_at)}
                       </p>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 gap-1 px-2 text-xs"
-                          onClick={() => handleReprintSettlement(entry.uuid)}
-                          disabled={isReprintingCurrent}
-                        >
-                          <Printer className="h-3 w-3" />
-                          {isReprintingCurrent ? 'Reimprimindo...' : 'Reimprimir'}
-                        </Button>
-                        {canShowCancel ? (
-                          <Button
-                            variant="destructive"
-                            size="sm"
+                      <div className="flex flex-col items-end gap-1">
+                        <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {!isCanceled ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 gap-1 px-2 text-xs"
+                              onClick={() => handleReprintSettlement(entry.uuid)}
+                              disabled={isReprintingCurrent}
+                            >
+                              <Printer className="h-3 w-3" />
+                              {isReprintingCurrent ? 'Reimprimindo...' : 'Reimprimir'}
+                            </Button>
+                          ) : null}
+                          {canShowCancel ? (
+                            <Button
+                              variant="destructive"
+                              size="sm"
                             className="h-7 px-2 text-xs"
                             onClick={() => handleOpenCancelDialog(entry)}
                             disabled={isCancelingCurrent}
