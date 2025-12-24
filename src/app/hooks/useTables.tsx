@@ -8,6 +8,7 @@ export type TableItem = {
   note?: string | null;
   price?: number;
   department?: string | null;
+  created_at?: string | null;
 };
 
 export type OpenTable = {
@@ -30,6 +31,8 @@ export type SettlementHistoryEntry = {
   settled_by: string;
   created_at: string;
   can_cancel?: boolean;
+  canceled?: boolean;
+  is_partial?: boolean;
 };
 
 export const useOpenTables = () => {

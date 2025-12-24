@@ -29,7 +29,7 @@ type GroupedActiveItem = {
   note?: string | null;
   department?: string | null;
   totalQuantity: number;
-  entries: { uuid: string; quantity: number }[];
+  entries: { uuid: string; quantity: number; created_at?: string | null }[];
 };
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
@@ -61,6 +61,34 @@ const getDepartmentLabel = (department?: string | null) => {
   return 'Cozinha';
 };
 
+const formatElapsedTime = (dateString?: string | null, now: number = Date.now()) => {
+  if (!dateString) return null;
+  const timestamp = Date.parse(dateString);
+  if (Number.isNaN(timestamp)) return null;
+  const diffMs = Math.max(0, now - timestamp);
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'há instantes';
+  if (diffMinutes < 60) {
+    if (diffMinutes === 1) {
+      return 'há 1 min';
+    }
+    return `há ${diffMinutes} min`;
+  }
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    const remainingMinutes = diffMinutes % 60;
+    if (remainingMinutes === 0) {
+      return diffHours === 1 ? 'há 1h' : `há ${diffHours}h`;
+    }
+    const hourLabel = diffHours === 1 ? '1h' : `${diffHours}h`;
+    return remainingMinutes === 1
+      ? `há ${hourLabel} 1min`
+      : `há ${hourLabel} ${remainingMinutes}min`;
+  }
+  const diffDays = Math.floor(diffHours / 24);
+  return diffDays === 1 ? 'há 1 dia' : `há ${diffDays} dias`;
+};
+
 export function TablesBoard() {
   const [activeTable, setActiveTable] = useState<OpenTable | null>(null);
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
@@ -89,6 +117,7 @@ export function TablesBoard() {
   const { menu, isLoading: isMenuLoading } = useMenu();
   const { makeAuthenticatedRequest, isSuperAdmin } = useAuth();
   const { showNotification } = useUtils();
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
   const lastItemsCountRef = useRef<number | null>(null);
   const canManageItems = isSuperAdmin;
   const isCancelJustificationValid = cancelJustification.trim().length >= 15;
@@ -126,7 +155,11 @@ export function TablesBoard() {
           };
         }
         acc[key].totalQuantity += item.quantity;
-        acc[key].entries.push({ uuid: item.uuid, quantity: item.quantity });
+        acc[key].entries.push({
+          uuid: item.uuid,
+          quantity: item.quantity,
+          created_at: item.created_at,
+        });
         return acc;
       },
       {},
@@ -139,8 +172,22 @@ export function TablesBoard() {
     const fresh = tables.find((table) => table.uuid === activeTable.uuid);
     if (fresh) {
       setActiveTable(fresh);
+      return;
     }
-  }, [tables, activeTable]);
+    if (itemsDialogOpen) {
+      handleCloseItems();
+      showNotification('Conta fechada', 'success');
+    } else {
+      setActiveTable(null);
+    }
+  }, [tables, activeTable, itemsDialogOpen, handleCloseItems, showNotification]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentTimestamp(Date.now());
+    }, 30000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (!itemsDialogOpen) {
@@ -720,15 +767,35 @@ export function TablesBoard() {
               const isReprintingCurrent = reprintingSettlementId === entry.uuid;
               const isCancelingCurrent =
                 isCancellingSettlement && cancelingSettlement?.uuid === entry.uuid;
-              const canShowCancel = Boolean(isSuperAdmin && entry.can_cancel);
+              const isCanceled = Boolean(entry.canceled);
+              const isPartial = Boolean(entry.is_partial);
+              const isClosed = !isPartial && !isCanceled;
+              const canShowCancel = Boolean(isSuperAdmin && entry.can_cancel && !isCanceled);
               return (
                 <div
                   key={entry.uuid}
                   className="flex flex-col gap-1 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
                 >
                   <div className="flex items-center justify-between text-sm font-semibold text-[#5c4227]">
-                    <div className="flex flex-col">
-                      <span>Mesa {entry.ticket_number}</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span>Mesa {entry.ticket_number}</span>
+                        {isCanceled ? (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700">
+                            Cancelado
+                          </span>
+                        ) : null}
+                        {isPartial && !isCanceled ? (
+                          <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-800">
+                            Parcial
+                          </span>
+                        ) : null}
+                        {isClosed ? (
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-800">
+                            Fechada
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="text-xs font-normal text-muted-foreground">
                         Fechada por {entry.settled_by} em {formatSettlementDate(entry.created_at)}
                       </p>
@@ -869,6 +936,14 @@ export function TablesBoard() {
                 const disableDecrease =
                   group.totalQuantity <= 0 || isAdjustingCurrent || removingGroupKey === group.key;
                 const disableIncrease = isAdjustingCurrent || removingGroupKey === group.key;
+                const oldestEntryDate = group.entries.reduce<string | null>((oldest, entry) => {
+                  if (!entry.created_at) return oldest;
+                  if (!oldest) return entry.created_at;
+                  return Date.parse(entry.created_at) < Date.parse(oldest) ? entry.created_at : oldest;
+                }, null);
+                const timeSinceOrder = oldestEntryDate
+                  ? formatElapsedTime(oldestEntryDate, currentTimestamp)
+                  : null;
 
                 return (
                   <div
@@ -876,10 +951,13 @@ export function TablesBoard() {
                     className="flex flex-col gap-3 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
+                      <div className="space-y-1">
                         <p className="text-base font-semibold text-foreground">{group.name}</p>
                         {group.note ? (
                           <p className="text-xs text-muted-foreground">Observação: {group.note}</p>
+                        ) : null}
+                        {timeSinceOrder ? (
+                          <p className="text-xs text-muted-foreground">Pedido {timeSinceOrder}</p>
                         ) : null}
                       </div>
                       <div className="text-right">
