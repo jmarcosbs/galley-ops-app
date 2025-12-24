@@ -178,7 +178,7 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
         if (!isOpen) onClose();
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Adicionar itens</DialogTitle>
           <DialogDescription>

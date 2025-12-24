@@ -58,7 +58,7 @@ export default function DeleteOrder({ dishIndex } : DeleteOrderProps) {
                 </Button>
 
 				<Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
-					<DialogContent>
+					<DialogContent className="max-h-[90vh] overflow-y-auto">
 						<DialogHeader>
 							<DialogTitle>{"Deseja excluir " + handleItemName() + '?'}</DialogTitle>
 							<DialogDescription>Confirme a exclusão do item</DialogDescription>

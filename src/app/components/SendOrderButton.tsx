@@ -121,7 +121,7 @@ export default function SendOrderButton() {
             </Button>
 
             <Dialog open={feedback.open} onOpenChange={(isOpen) => (!isOpen ? setFeedback((prev) => ({ ...prev, open: false })) : null)}>
-                <DialogContent>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <div className="flex items-center gap-3 text-[#5c4227]">
                             {feedback.type === 'error' ? (

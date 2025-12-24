@@ -102,7 +102,7 @@ export default function CommentOrderDialog(props: CommentOrderProps) {
 
     return (
         <Dialog open={props.openDialog} onOpenChange={(isOpen) => (!isOpen ? props.onClose() : null)}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Adicionar observação</DialogTitle>
                     <DialogDescription>

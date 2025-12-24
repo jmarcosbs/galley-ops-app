@@ -91,7 +91,10 @@ export function AddOrderDialog({ trigger, onConfirm }: AddOrderDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent onOpenAutoFocus={(event) => event.preventDefault()}>
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Vincular comanda</DialogTitle>
           <DialogDescription>

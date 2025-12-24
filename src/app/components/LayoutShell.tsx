@@ -104,7 +104,7 @@ function LayoutShellContent({ children }: LayoutShellProps) {
                       Gerenciar mesas
                     </button>
                   </DialogTrigger>
-                  <DialogContent className="left-0 top-0 h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-none bg-background p-0 [&>button:last-child]:hidden">
+                  <DialogContent className="left-0 top-0 h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none border-none bg-background p-0 [&>button:last-child]:hidden">
                     <DialogHeader className="sr-only">
                       <DialogTitle>Gerenciar mesas</DialogTitle>
                     </DialogHeader>
@@ -147,7 +147,7 @@ function LayoutShellContent({ children }: LayoutShellProps) {
                         Dashboard
                       </button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl border-none bg-background px-0 py-0 [&>button:last-child]:hidden">
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-none bg-background px-0 py-0 [&>button:last-child]:hidden">
                       <DialogHeader className="sr-only">
                         <DialogTitle>Dashboard</DialogTitle>
                       </DialogHeader>

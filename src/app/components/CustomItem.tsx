@@ -84,7 +84,7 @@ return (
 	</button>
 
 	<Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
-		<DialogContent>
+		<DialogContent className="max-h-[90vh] overflow-y-auto">
 			<DialogHeader>
 				<DialogTitle>Pedido personalizado</DialogTitle>
 			</DialogHeader>
