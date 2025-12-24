@@ -108,6 +108,7 @@ export function TablesBoard() {
     useState<SettlementHistoryEntry | null>(null);
   const [cancelJustification, setCancelJustification] = useState('');
   const [isCancellingSettlement, setIsCancellingSettlement] = useState(false);
+  const [historyItemsSettlementUuid, setHistoryItemsSettlementUuid] = useState<string | null>(null);
   const [selectedDishId, setSelectedDishId] = useState<string>('');
   const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -167,6 +168,43 @@ export function TablesBoard() {
     return Object.values(groups);
   }, [activeTable]);
 
+  const historyItemsEntry = useMemo(() => {
+    if (!historyItemsSettlementUuid) return null;
+    return history.find((entry) => entry.uuid === historyItemsSettlementUuid) ?? null;
+  }, [history, historyItemsSettlementUuid]);
+
+  const historyItemsDialogOpen = Boolean(historyItemsSettlementUuid && historyItemsEntry);
+
+  const groupedHistoryItems = useMemo(() => {
+    if (!historyItemsEntry?.items?.length) return [];
+    const groups = historyItemsEntry.items.reduce<
+      Record<
+        string,
+        {
+          key: string;
+          name: string;
+          note?: string | null;
+          department?: string | null;
+          totalQuantity: number;
+        }
+      >
+    >((acc, item) => {
+      const key = `${item.name}__${item.note ?? ''}__${item.department ?? ''}`;
+      if (!acc[key]) {
+        acc[key] = {
+          key,
+          name: item.name,
+          note: item.note,
+          department: item.department,
+          totalQuantity: 0,
+        };
+      }
+      acc[key].totalQuantity += item.quantity;
+      return acc;
+    }, {});
+    return Object.values(groups);
+  }, [historyItemsEntry]);
+
   useEffect(() => {
     if (!activeTable) return;
     const fresh = tables.find((table) => table.uuid === activeTable.uuid);
@@ -188,6 +226,13 @@ export function TablesBoard() {
     }, 30000);
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (!historyItemsSettlementUuid) return;
+    if (!historyItemsEntry) {
+      setHistoryItemsSettlementUuid(null);
+    }
+  }, [historyItemsSettlementUuid, historyItemsEntry]);
 
   useEffect(() => {
     if (!itemsDialogOpen) {
@@ -259,6 +304,15 @@ export function TablesBoard() {
   const handleOpenCloseDialog = (table: OpenTable) => {
     setCloseTable(table);
     setCloseDialogOpen(true);
+  };
+
+  const handleOpenHistoryItems = (entry: SettlementHistoryEntry) => {
+    if (!entry.items?.length) return;
+    setHistoryItemsSettlementUuid(entry.uuid);
+  };
+
+  const handleCloseHistoryItems = () => {
+    setHistoryItemsSettlementUuid(null);
   };
 
   useEffect(() => {
@@ -803,6 +857,16 @@ export function TablesBoard() {
                       <div className="flex flex-col items-end gap-1">
                         <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
                         <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 px-2 text-xs"
+                            onClick={() => handleOpenHistoryItems(entry)}
+                            disabled={!entry.items?.length}
+                          >
+                            <ReceiptText className="h-3 w-3" />
+                            Ver itens
+                          </Button>
                           {!isCanceled ? (
                             <Button
                               variant="ghost"
@@ -840,8 +904,64 @@ export function TablesBoard() {
         </div>
       </section>
 
+      <Dialog
+        open={historyItemsDialogOpen}
+        onOpenChange={(open) => {
+          if (open) return;
+          handleCloseHistoryItems();
+        }}
+      >
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Itens fechados</DialogTitle>
+            <DialogDescription>Itens liquidados no fechamento selecionado.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {historyItemsEntry ? (
+              <div className="rounded-lg border border-muted/70 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                <p className="text-base font-semibold text-foreground">
+                  Mesa {historyItemsEntry.ticket_number}
+                </p>
+                <p>Fechada em {formatSettlementDate(historyItemsEntry.created_at)}</p>
+              </div>
+            ) : null}
+            <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+              {groupedHistoryItems.length ? (
+                groupedHistoryItems.map((item) => (
+                  <div
+                    key={item.key}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-muted/70 bg-white px-3 py-2 shadow-sm"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                      {item.note ? (
+                        <p className="text-xs text-muted-foreground">Observação: {item.note}</p>
+                      ) : null}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-[#5c4227]">
+                        Quantidade: {formatQuantity(item.totalQuantity, item.department)}
+                      </p>
+                      {item.department ? (
+                        <p className="text-xs text-muted-foreground">
+                          Destino: {getDepartmentLabel(item.department)}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum item registrado para este fechamento.
+                </p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={itemsDialogOpen} onOpenChange={(open) => (open ? null : handleCloseItems())}>
-        <DialogContent className="left-0 top-0 flex h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col overflow-hidden rounded-none border-none bg-background p-0">
+        <DialogContent className="left-0 top-0 flex h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col overflow-y-auto rounded-none border-none bg-background p-0">
           <div className="shrink-0 border-b border-muted bg-background px-4 py-4">
             <DialogHeader>
               <DialogTitle>{activeTable?.label ?? 'Itens da mesa'}</DialogTitle>
@@ -1024,7 +1144,7 @@ export function TablesBoard() {
       </Dialog>
 
       <Dialog open={closeDialogOpen} onOpenChange={(open) => (open ? null : handleCloseCloseDialog())}>
-        <DialogContent className="left-0 top-0 flex h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col overflow-hidden rounded-none border-none bg-background p-0">
+        <DialogContent className="left-0 top-0 flex h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col overflow-y-auto rounded-none border-none bg-background p-0">
           <div className="shrink-0 border-b border-muted bg-background px-4 py-4">
             <DialogHeader>
               <DialogTitle>Fechar {closeTable?.label ?? 'mesa'}</DialogTitle>
@@ -1115,7 +1235,7 @@ export function TablesBoard() {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cancelar fechamento</DialogTitle>
             <DialogDescription>

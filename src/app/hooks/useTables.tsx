@@ -22,6 +22,15 @@ export type OpenTable = {
   label?: string;
 };
 
+export type SettlementHistoryItem = {
+  uuid: string;
+  dish_order_uuid?: string;
+  name: string;
+  quantity: number;
+  note?: string | null;
+  department?: string | null;
+};
+
 export type SettlementHistoryEntry = {
   uuid: string;
   ticket_number: number;
@@ -33,6 +42,7 @@ export type SettlementHistoryEntry = {
   can_cancel?: boolean;
   canceled?: boolean;
   is_partial?: boolean;
+  items?: SettlementHistoryItem[];
 };
 
 export const useOpenTables = () => {
