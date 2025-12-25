@@ -531,6 +531,7 @@ export function TablesBoard() {
           },
           body: JSON.stringify({
             ticket_number: closeTable.number,
+            is_outside: closeTable.is_outside ?? false,
             items,
           }),
         },
@@ -567,6 +568,7 @@ export function TablesBoard() {
         },
         body: JSON.stringify({
           ticket_number: activeTable.number,
+          is_outside: activeTable.is_outside ?? false,
           dish_order_uuid: itemId,
           quantity,
         }),
@@ -592,6 +594,7 @@ export function TablesBoard() {
         },
         body: JSON.stringify({
           ticket_number: activeTable.number,
+          is_outside: activeTable.is_outside ?? false,
           dish_order_uuid: itemId,
           quantity,
         }),
@@ -704,6 +707,7 @@ export function TablesBoard() {
           },
           body: JSON.stringify({
             ticket_number: activeTable.number,
+            is_outside: activeTable.is_outside ?? false,
             dish_uuid: selectedDishId,
             amount: newItemQuantity,
           }),
