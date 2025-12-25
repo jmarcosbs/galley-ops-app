@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { AddOrderDialog } from '@/app/components/AddOrderDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Minus, Plus, ReceiptText, RefreshCcw, Printer } from 'lucide-react';
+import { ArrowUp01, Minus, Plus, ReceiptText, RefreshCcw, Printer } from 'lucide-react';
 import { useOpenTables, OpenTable, SettlementHistoryEntry } from '../hooks/useTables';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '../hooks/useAuth';
@@ -113,6 +114,10 @@ export function TablesBoard() {
   const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingTable, setEditingTable] = useState<OpenTable | null>(null);
+  const [editedTableNumber, setEditedTableNumber] = useState<number | ''>('');
+  const [editedIsOutside, setEditedIsOutside] = useState(false);
+  const [isUpdatingTableDetails, setIsUpdatingTableDetails] = useState(false);
   const [isRefreshingTables, setIsRefreshingTables] = useState(false);
   const { tables, history, isLoading, refetch } = useOpenTables();
   const { menu, isLoading: isMenuLoading } = useMenu();
@@ -122,6 +127,7 @@ export function TablesBoard() {
   const lastItemsCountRef = useRef<number | null>(null);
   const canManageItems = isSuperAdmin;
   const canClosePartially = isSuperAdmin;
+  const canEditTableMetadata = isSuperAdmin;
   const isCancelJustificationValid = cancelJustification.trim().length >= 15;
 
   const handleShowItems = (table: OpenTable) => {
@@ -206,6 +212,19 @@ export function TablesBoard() {
     return Object.values(groups);
   }, [historyItemsEntry]);
 
+  const isValidEditedTableNumber =
+    typeof editedTableNumber === 'number' &&
+    Number.isFinite(editedTableNumber) &&
+    editedTableNumber > 0;
+
+  const hasTableChanges = Boolean(
+    editingTable &&
+      isValidEditedTableNumber &&
+      (editedTableNumber !== editingTable.number ||
+        editedIsOutside !== Boolean(editingTable.is_outside)),
+  );
+  const isUpdateTableDisabled = !hasTableChanges || isUpdatingTableDetails;
+
   useEffect(() => {
     if (!activeTable) return;
     const fresh = tables.find((table) => table.uuid === activeTable.uuid);
@@ -220,6 +239,32 @@ export function TablesBoard() {
       setActiveTable(null);
     }
   }, [tables, activeTable, itemsDialogOpen, handleCloseItems, showNotification]);
+
+  useEffect(() => {
+    setEditingTable((previous) => {
+      if (!previous) return previous;
+      const refreshed = tables.find((table) => table.uuid === previous.uuid);
+      if (!refreshed) return null;
+      if (
+        refreshed.number === previous.number &&
+        refreshed.is_outside === previous.is_outside &&
+        refreshed.label === previous.label
+      ) {
+        return previous;
+      }
+      return refreshed;
+    });
+  }, [tables]);
+
+  useEffect(() => {
+    if (!editingTable) {
+      setEditedTableNumber('');
+      setEditedIsOutside(false);
+      return;
+    }
+    setEditedTableNumber(editingTable.number);
+    setEditedIsOutside(Boolean(editingTable.is_outside));
+  }, [editingTable]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -734,6 +779,121 @@ export function TablesBoard() {
     }
   };
 
+  const handleOpenEditTableDialog = (table: OpenTable, event?: ReactMouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    setEditingTable(table);
+  };
+
+  const handleCloseEditTableDialog = () => {
+    if (isUpdatingTableDetails) return;
+    setEditingTable(null);
+  };
+
+  const handleUpdateTableDetails = async () => {
+    const targetTable = editingTable;
+    if (!targetTable) return;
+    if (typeof editedTableNumber !== 'number' || editedTableNumber <= 0) {
+      showNotification('Informe um número de mesa válido.', 'error');
+      return;
+    }
+
+    setIsUpdatingTableDetails(true);
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${API_BASE_URL}/api/tickets/update/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticket_uuid: targetTable.uuid,
+            number: editedTableNumber,
+            is_outside: editedIsOutside,
+          }),
+        },
+      );
+
+      const body = (await response.json().catch(() => null)) as
+        | {
+            detail?: string;
+            updated?: boolean;
+            ticket?: { number?: number; label?: string; is_outside?: boolean };
+          }
+        | null;
+
+      if (!response.ok) {
+        const errorMessage = extractApiErrorMessage(body) || 'Não foi possível atualizar a mesa';
+        throw new Error(errorMessage);
+      }
+
+      const updated = body?.updated ?? true;
+      const message =
+        body?.detail ?? (updated ? 'Mesa atualizada com sucesso' : 'Nenhuma alteração aplicada');
+      showNotification(message, 'success');
+
+      if (updated) {
+        const resolvedNumber =
+          typeof body?.ticket?.number === 'number' ? body.ticket.number : editedTableNumber;
+        const resolvedIsOutside =
+          typeof body?.ticket?.is_outside === 'boolean'
+            ? body.ticket.is_outside
+            : editedIsOutside;
+        const resolvedLabel =
+          body?.ticket?.label ?? (resolvedIsOutside ? `R${resolvedNumber}` : String(resolvedNumber));
+
+        setEditingTable((prev) =>
+          prev
+            ? {
+                ...prev,
+                number: resolvedNumber,
+                is_outside: resolvedIsOutside,
+                label: resolvedLabel,
+              }
+            : prev,
+        );
+
+        setActiveTable((prev) => {
+          if (!prev) return prev;
+          if (prev.uuid !== targetTable.uuid) return prev;
+          return {
+            ...prev,
+            number: resolvedNumber,
+            is_outside: resolvedIsOutside,
+            label: resolvedLabel,
+          };
+        });
+
+        if (closeTable && closeTable.uuid === targetTable.uuid) {
+          setCloseTable((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  number: resolvedNumber,
+                  is_outside: resolvedIsOutside,
+                  label: resolvedLabel,
+                }
+              : prev,
+          );
+        }
+
+        setEditingTable(null);
+      }
+
+      refetch();
+    } catch (error) {
+      console.error(error);
+      showNotification(
+        error instanceof Error ? error.message : 'Não foi possível atualizar a mesa',
+        'error',
+      );
+    } finally {
+      setIsUpdatingTableDetails(false);
+    }
+  };
+
   const normalizedTables = useMemo(
     () =>
       tables.map((table) => ({
@@ -784,7 +944,21 @@ export function TablesBoard() {
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex w-full items-center gap-3 sm:w-auto">
                   <div className="w-1/2">
-                    <p className="text-xl font-semibold text-foreground">{table.label}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xl font-semibold text-foreground">{table.label}</p>
+                      {canEditTableMetadata ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-[#5c4227]"
+                          onClick={(event) => handleOpenEditTableDialog(table, event)}
+                          aria-label={`Editar mesa ${table.label}`}
+                        >
+                          <ArrowUp01 className="h-4 w-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {table.total != null ? currencyFormatter.format(table.total) : 'Total pendente'}
                     </p>
@@ -1153,6 +1327,98 @@ export function TablesBoard() {
               )}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(editingTable)}
+        onOpenChange={(open) => {
+          if (open) return;
+          handleCloseEditTableDialog();
+        }}
+      >
+        <DialogContent className="max-w-sm space-y-4">
+          <DialogHeader>
+            <DialogTitle>
+              Editar mesa {editingTable?.label ?? (editingTable ? editingTable.number : '')}
+            </DialogTitle>
+            <DialogDescription>
+              Informe o novo número e defina se a comanda pertence à área externa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <label
+                className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                htmlFor="edit-table-number"
+              >
+                Número da mesa
+              </label>
+              <Input
+                id="edit-table-number"
+                type="number"
+                min={1}
+                value={editedTableNumber === '' ? '' : editedTableNumber}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  setEditedTableNumber(Number.isNaN(value) ? '' : value);
+                }}
+                disabled={!editingTable || isUpdatingTableDetails}
+              />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Local
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ${
+                    !editedIsOutside
+                      ? 'border-[#5c4227] bg-[#5c4227] text-white'
+                      : 'border-muted text-muted-foreground hover:border-[#5c4227] hover:text-[#5c4227]'
+                  }`}
+                  aria-pressed={!editedIsOutside}
+                  onClick={() => setEditedIsOutside(false)}
+                  disabled={!editingTable || isUpdatingTableDetails}
+                >
+                  Salão
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ${
+                    editedIsOutside
+                      ? 'border-[#5c4227] bg-[#5c4227] text-white'
+                      : 'border-muted text-muted-foreground hover:border-[#5c4227] hover:text-[#5c4227]'
+                  }`}
+                  aria-pressed={editedIsOutside}
+                  onClick={() => setEditedIsOutside(true)}
+                  disabled={!editingTable || isUpdatingTableDetails}
+                >
+                  Área externa
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Mesas da área externa aparecem como R + número (ex: R3).
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="ghost"
+              onClick={handleCloseEditTableDialog}
+              disabled={isUpdatingTableDetails}
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="bg-[#5c4227] text-white hover:bg-[#5c4227]/90"
+              onClick={handleUpdateTableDetails}
+              disabled={isUpdateTableDisabled}
+            >
+              {isUpdatingTableDetails ? 'Salvando...' : 'Atualizar mesa'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
