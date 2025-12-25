@@ -718,7 +718,6 @@ export function TablesBoard() {
 
       showNotification('Item adicionado', 'success');
       setNewItemQuantity(1);
-      setShowAddForm(false);
       refetch();
     } catch (error) {
       console.error(error);

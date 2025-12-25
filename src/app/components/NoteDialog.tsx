@@ -174,7 +174,11 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
     });
 
     setSelectedItem(null);
-    onClose();
+    setQuantity(1);
+    setOptionGroups([]);
+    setSideDishOptions([]);
+    setSelectedSideDishes({});
+    setItemNote('');
   };
 
   return (
