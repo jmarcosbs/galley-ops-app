@@ -121,6 +121,7 @@ export function TablesBoard() {
   const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
   const lastItemsCountRef = useRef<number | null>(null);
   const canManageItems = isSuperAdmin;
+  const canClosePartially = isSuperAdmin;
   const isCancelJustificationValid = cancelJustification.trim().length >= 15;
 
   const handleShowItems = (table: OpenTable) => {
@@ -337,15 +338,17 @@ export function TablesBoard() {
   };
 
   const handleSelectionChange = (key: string, value: number) => {
+    if (!canClosePartially) return;
     setCloseSelection((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleToggleItem = (key: string) => {
+    if (!canClosePartially) return;
     setCloseSelectionActive((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleSelectAll = () => {
-    if (!groupedCloseItems.length) return;
+    if (!canClosePartially || !groupedCloseItems.length) return;
     setCloseSelectionActive(
       groupedCloseItems.reduce<Record<string, boolean>>((acc, group) => {
         acc[group.key] = true;
@@ -355,7 +358,7 @@ export function TablesBoard() {
   };
 
   const handleDeselectAll = () => {
-    if (!groupedCloseItems.length) return;
+    if (!canClosePartially || !groupedCloseItems.length) return;
     setCloseSelectionActive(
       groupedCloseItems.reduce<Record<string, boolean>>((acc, group) => {
         acc[group.key] = false;
@@ -466,13 +469,13 @@ export function TablesBoard() {
     }
   };
 
-  const hasSelectedItems = useMemo(
-    () =>
-      groupedCloseItems.some(
-        (group) => closeSelectionActive[group.key] && (closeSelection[group.key] ?? 0) > 0,
-      ),
-    [groupedCloseItems, closeSelection, closeSelectionActive],
-  );
+  const hasSelectedItems = useMemo(() => {
+    if (!groupedCloseItems.length) return false;
+    if (!canClosePartially) return true;
+    return groupedCloseItems.some(
+      (group) => closeSelectionActive[group.key] && (closeSelection[group.key] ?? 0) > 0,
+    );
+  }, [groupedCloseItems, closeSelection, closeSelectionActive, canClosePartially]);
 
   const menuOptions = useMemo(
     () =>
@@ -493,22 +496,27 @@ export function TablesBoard() {
 
   const handleProceedClose = async () => {
     if (!closeTable) return;
-    const items = groupedCloseItems.flatMap((group) => {
-      if (!closeSelectionActive[group.key]) return [];
-      let remaining = closeSelection[group.key] ?? 0;
-      if (remaining <= 0) return [];
-      const groupItems = [];
-      for (const entry of group.entries) {
-        if (remaining <= 0) break;
-        const amount = Math.min(entry.quantity, remaining);
-        groupItems.push({
-          dish_order_uuid: entry.uuid,
-          dish_order_quantity: amount,
-        });
-        remaining -= amount;
-      }
-      return groupItems;
-    });
+    const items = canClosePartially
+      ? groupedCloseItems.flatMap((group) => {
+          if (!closeSelectionActive[group.key]) return [];
+          let remaining = closeSelection[group.key] ?? 0;
+          if (remaining <= 0) return [];
+          const groupItems = [];
+          for (const entry of group.entries) {
+            if (remaining <= 0) break;
+            const amount = Math.min(entry.quantity, remaining);
+            groupItems.push({
+              dish_order_uuid: entry.uuid,
+              dish_order_quantity: amount,
+            });
+            remaining -= amount;
+          }
+          return groupItems;
+        })
+      : (closeTable.items ?? []).map((item) => ({
+          dish_order_uuid: item.uuid,
+          dish_order_quantity: item.quantity,
+        }));
 
     if (!items.length) return;
 
@@ -1151,67 +1159,80 @@ export function TablesBoard() {
             </DialogHeader>
           </div>
           <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#d7c6b4]">
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                className="flex-1 rounded-full border border-[#5c4227] px-4 py-2 text-sm font-semibold text-[#5c4227] transition hover:bg-[#5c4227] hover:text-white sm:flex-none"
-              >
-                Selecionar todos
-              </button>
-              <button
-                type="button"
-                onClick={handleDeselectAll}
-                className="flex-1 rounded-full border border-muted px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted sm:flex-none"
-              >
-                Desmarcar todos
-              </button>
-            </div>
-            {groupedCloseItems.map((group) => (
-              <div
-                key={group.key}
-                className={`flex items-center justify-between rounded-lg border border-muted px-3 py-2 ${
-                  closeSelectionActive[group.key] ? '' : 'opacity-50'
-                }`}
-              >
-                <div className="flex flex-1 flex-col gap-1">
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="h-5 w-5 accent-[#5c4227]"
-                        checked={closeSelectionActive[group.key] ?? false}
-                        onChange={() => handleToggleItem(group.key)}
-                      />
-                      <p className="text-base font-semibold text-foreground">{group.name}</p>
-                    </label>
-                  </div>
-                  <p className="pl-7 text-xs text-muted-foreground">Disponível: {group.totalQuantity}</p>
-                </div>
-                <select
-                  className={`h-12 rounded-md border border-input bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#5c4227] ${
-                    closeSelectionActive[group.key] ? '' : 'opacity-50'
-                  }`}
-                  value={closeSelection[group.key] ?? group.totalQuantity}
-                  disabled={!closeSelectionActive[group.key]}
-                  onChange={(event) => handleSelectionChange(group.key, Number(event.target.value))}
+            {canClosePartially && (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="flex-1 rounded-full border border-[#5c4227] px-4 py-2 text-sm font-semibold text-[#5c4227] transition hover:bg-[#5c4227] hover:text-white sm:flex-none"
                 >
-                  {(() => {
-                    const step = group.department === 'bar' ? 1 : 0.5;
-                    const options: number[] = [];
-                    const max = group.totalQuantity + 1e-9;
-                    for (let value = step; value <= max; value += step) {
-                      options.push(Number(value.toFixed(2)));
-                    }
-                    return options;
-                  })().map((option) => (
-                    <option key={`${group.key}-${option}`} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  Selecionar todos
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="flex-1 rounded-full border border-muted px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted sm:flex-none"
+                >
+                  Desmarcar todos
+                </button>
               </div>
-            ))}
+            )}
+            {groupedCloseItems.map((group) => {
+              const isGroupActive = canClosePartially ? closeSelectionActive[group.key] : true;
+              return (
+                <div
+                  key={group.key}
+                  className={`flex items-center justify-between rounded-lg border border-muted px-3 py-2 ${
+                    isGroupActive ? '' : 'opacity-50'
+                  }`}
+                >
+                  <div className="flex flex-1 flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      {canClosePartially ? (
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="h-5 w-5 accent-[#5c4227]"
+                            checked={closeSelectionActive[group.key] ?? false}
+                            onChange={() => handleToggleItem(group.key)}
+                          />
+                          <p className="text-base font-semibold text-foreground">{group.name}</p>
+                        </label>
+                      ) : (
+                        <p className="text-base font-semibold text-foreground">{group.name}</p>
+                      )}
+                    </div>
+                    <p className={`${canClosePartially ? 'pl-7' : ''} text-xs text-muted-foreground`}>
+                      Disponível: {group.totalQuantity}
+                    </p>
+                  </div>
+                  {canClosePartially ? (
+                    <select
+                      className={`h-12 rounded-md border border-input bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#5c4227] ${
+                        isGroupActive ? '' : 'opacity-50'
+                      }`}
+                      value={closeSelection[group.key] ?? group.totalQuantity}
+                      disabled={!isGroupActive}
+                      onChange={(event) => handleSelectionChange(group.key, Number(event.target.value))}
+                    >
+                      {(() => {
+                        const step = group.department === 'bar' ? 1 : 0.5;
+                        const options: number[] = [];
+                        const max = group.totalQuantity + 1e-9;
+                        for (let value = step; value <= max; value += step) {
+                          options.push(Number(value.toFixed(2)));
+                        }
+                        return options;
+                      })().map((option) => (
+                        <option key={`${group.key}-${option}`} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                </div>
+              );
+            })}
             <div className="border-t border-muted pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)]">
               <Button
                 className="w-full bg-[#5c4227] py-9 text-lg font-semibold text-white hover:bg-[#5c4227]/90"
