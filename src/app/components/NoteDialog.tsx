@@ -56,20 +56,6 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
 
   const step = useMemo(() => (selectedItem?.departiment === 'cozinha' ? 0.5 : 1), [selectedItem]);
   const minQuantity = useMemo(() => (selectedItem?.departiment === 'cozinha' ? 0.5 : 1), [selectedItem]);
-  const requiresSideDishSelection = useMemo(() => {
-    if (!sideDishOptions?.length) {
-      return false;
-    }
-    return sideDishOptions.some((option, index) => {
-      if (!option.side_dishes.length) {
-        return false;
-      }
-      if (option.default_side_dish) {
-        return false;
-      }
-      return !selectedSideDishes[index];
-    });
-  }, [sideDishOptions, selectedSideDishes]);
 
   const handleSelectItem = (item: MenuSubItem) => {
     if (!item.isAvailable) return;
@@ -99,7 +85,6 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
 
   const handleAddDish = () => {
     if (!selectedItem) return;
-    if (requiresSideDishSelection) return;
 
     const normalizedSideDishes =
       sideDishOptions
@@ -227,60 +212,40 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
 
             {sideDishOptions.length > 0 ? (
               <div className="space-y-4">
-                {sideDishOptions.map((option, groupIndex) => {
-                  const requiresSelectionForOption =
-                    option.side_dishes.length > 0 && !option.default_side_dish;
-                  const isSelectionMissing =
-                    requiresSelectionForOption && !selectedSideDishes[groupIndex];
-                  return (
-                    <div key={option.uuid ?? groupIndex} className="space-y-2">
-                      <p
-                        className={cn(
-                          'text-xs font-semibold uppercase tracking-wide',
-                          isSelectionMissing ? 'text-red-600' : 'text-[#5c4227]',
-                        )}
-                      >
-                        Escolha {groupIndex + 1}
-                      </p>
-                      {isSelectionMissing ? (
-                        <p className="text-xs text-red-600">Selecione uma opção.</p>
-                      ) : null}
-                      <div className="flex flex-wrap gap-2">
-                        {option.side_dishes.map((item) => {
-                          const isSelected = selectedSideDishes[groupIndex] === item.uuid;
+                {sideDishOptions.map((option, groupIndex) => (
+                  <div key={option.uuid ?? groupIndex} className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#5c4227]">
+                      Escolha {groupIndex + 1}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {option.side_dishes.map((item) => {
+                        const isSelected = selectedSideDishes[groupIndex] === item.uuid;
 
-                          return (
-                            <button
-                              type="button"
-                              key={item.uuid}
-                              onClick={() => {
-                                setSelectedSideDishes((prev) => ({
-                                  ...prev,
-                                  [groupIndex]: item.uuid,
-                                }));
-                              }}
-                              className={cn(
-                                'rounded-full border px-4 py-1 text-sm font-medium transition',
-                                isSelected
-                                  ? 'border-[#5c4227] bg-[#5c4227] text-white'
-                                  : 'border-[#5c4227]/30 text-[#5c4227] hover:bg-[#f4ece3]',
-                              )}
-                            >
-                              {item.name}
-                            </button>
-                          );
-                        })}
-                      </div>
+                        return (
+                          <button
+                            type="button"
+                            key={item.uuid}
+                            onClick={() => {
+                              setSelectedSideDishes((prev) => ({
+                                ...prev,
+                                [groupIndex]: item.uuid,
+                              }));
+                            }}
+                            className={cn(
+                              'rounded-full border px-4 py-1 text-sm font-medium transition',
+                              isSelected
+                                ? 'border-[#5c4227] bg-[#5c4227] text-white'
+                                : 'border-[#5c4227]/30 text-[#5c4227] hover:bg-[#f4ece3]',
+                            )}
+                          >
+                            {item.name}
+                          </button>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
-            ) : null}
-
-            {requiresSideDishSelection ? (
-              <p className="text-sm text-red-600">
-                Selecione um acompanhamento para cada grupo antes de adicionar o item.
-              </p>
             ) : null}
 
             <div className="flex items-center justify-between rounded-full border border-[#5c4227]/30 bg-white px-4 py-3">
@@ -322,9 +287,8 @@ export default function NoteDialog({ menuSubItems, openDialog, onClose }: NoteDi
 
             <Button
               type="button"
-              className="w-full bg-[#5c4227] py-5 text-white hover:bg-[#5c4227]/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full bg-[#5c4227] py-5 text-white hover:bg-[#5c4227]/90"
               onClick={handleAddDish}
-              disabled={requiresSideDishSelection}
             >
               Adicionar à mesa
             </Button>
