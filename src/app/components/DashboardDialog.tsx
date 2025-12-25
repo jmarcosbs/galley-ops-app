@@ -14,6 +14,8 @@ import { API_BASE_URL } from '@/lib/env';
 type DashboardEntry = {
   uuid: string;
   ticket_number: number;
+  ticket_label?: string;
+  is_outside?: boolean;
   final_value: number;
   additions_value: number;
   created_at: string;
@@ -99,7 +101,19 @@ export function DashboardDialog({ open }: DashboardDialogProps) {
           throw new Error(message);
         }
 
-        setData(payload as DashboardSummary);
+        const normalizedSettlements = Array.isArray(payload.settlements)
+          ? (payload.settlements as DashboardEntry[]).map((entry) => ({
+              ...entry,
+              ticket_label:
+                entry.ticket_label ??
+                (entry.is_outside ? `R${entry.ticket_number}` : String(entry.ticket_number)),
+            }))
+          : [];
+
+        setData({
+          ...(payload as DashboardSummary),
+          settlements: normalizedSettlements,
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao carregar dados do dashboard.';
         notificationRef.current(message, 'error');
@@ -215,7 +229,7 @@ export function DashboardDialog({ open }: DashboardDialogProps) {
                 {data?.settlements?.map((entry) => (
                   <div key={entry.uuid} className="rounded-lg border p-3">
                     <div className="flex items-center justify-between text-sm font-medium text-foreground">
-                      <span>Mesa #{entry.ticket_number}</span>
+                      <span>Mesa #{entry.ticket_label ?? entry.ticket_number}</span>
                       <span className="text-muted-foreground">{formatIsoTime(entry.created_at)}</span>
                     </div>
                     <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">

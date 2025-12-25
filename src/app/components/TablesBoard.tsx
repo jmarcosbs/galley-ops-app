@@ -735,7 +735,9 @@ export function TablesBoard() {
     () =>
       tables.map((table) => ({
         ...table,
-        label: `Mesa ${table.number}`,
+        label: `Mesa ${
+          table.label ?? (table.is_outside ? `R${table.number}` : String(table.number))
+        }`,
       })),
     [tables],
   );
@@ -841,7 +843,7 @@ export function TablesBoard() {
                   <div className="flex items-center justify-between text-sm font-semibold text-[#5c4227]">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span>Mesa {entry.ticket_number}</span>
+                      <span>Mesa {entry.ticket_label ?? entry.ticket_number}</span>
                         {isCanceled ? (
                           <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700">
                             Cancelado
@@ -928,7 +930,7 @@ export function TablesBoard() {
             {historyItemsEntry ? (
               <div className="rounded-lg border border-muted/70 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                 <p className="text-base font-semibold text-foreground">
-                  Mesa {historyItemsEntry.ticket_number}
+                  Mesa {historyItemsEntry.ticket_label ?? historyItemsEntry.ticket_number}
                 </p>
                 <p>Fechada em {formatSettlementDate(historyItemsEntry.created_at)}</p>
               </div>
@@ -1267,7 +1269,7 @@ export function TablesBoard() {
           <div className="space-y-4">
             <div className="rounded-lg border border-muted/70 bg-muted/40 p-3 text-sm text-muted-foreground">
               <p className="text-base font-semibold text-foreground">
-                Mesa {cancelingSettlement?.ticket_number ?? '—'}
+                Mesa {cancelingSettlement?.ticket_label ?? cancelingSettlement?.ticket_number ?? '—'}
               </p>
               <p>Valor: {currencyFormatter.format(cancelingSettlement?.final_value ?? 0)}</p>
             </div>

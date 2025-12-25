@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WS_BASE_URL } from '@/lib/env';
 
+const formatTableLabel = (options: {
+  number: number;
+  isOutside?: boolean;
+  label?: string;
+}) => {
+  if (options.label) {
+    return options.label;
+  }
+  const suffix = options.isOutside ? `R${options.number}` : String(options.number);
+  return suffix;
+};
+
 export type TableItem = {
   uuid: string;
   name: string;
@@ -14,6 +26,7 @@ export type TableItem = {
 export type OpenTable = {
   uuid: string;
   number: number;
+  is_outside?: boolean;
   status: string;
   created_at: string;
   updated_at: string;
@@ -34,6 +47,7 @@ export type SettlementHistoryItem = {
 export type SettlementHistoryEntry = {
   uuid: string;
   ticket_number: number;
+  ticket_label?: string;
   final_value: number;
   additions_value?: number;
   discounts_value?: number;
@@ -42,6 +56,7 @@ export type SettlementHistoryEntry = {
   can_cancel?: boolean;
   canceled?: boolean;
   is_partial?: boolean;
+  is_outside?: boolean;
   items?: SettlementHistoryItem[];
 };
 
@@ -78,10 +93,28 @@ export const useOpenTables = () => {
         const payload = JSON.parse(event.data);
         if (payload?.event === 'open_tables') {
           if (Array.isArray(payload.tables)) {
-            setTables(payload.tables);
+            const normalizedTables = (payload.tables as OpenTable[]).map((table) => ({
+              ...table,
+              label: formatTableLabel({
+                number: table.number,
+                isOutside: table.is_outside,
+                label: table.label,
+              }),
+            }));
+            setTables(normalizedTables);
           }
           if (Array.isArray(payload.history)) {
-            setHistory(payload.history);
+            const normalizedHistory = (payload.history as SettlementHistoryEntry[]).map(
+              (entry) => ({
+                ...entry,
+                ticket_label: formatTableLabel({
+                  number: entry.ticket_number,
+                  isOutside: entry.is_outside,
+                  label: entry.ticket_label,
+                }),
+              }),
+            );
+            setHistory(normalizedHistory);
           }
         } else {
           console.warn('Mensagem de WS ignorada', payload);
