@@ -11,6 +11,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -82,15 +83,17 @@ export default function LoginPage() {
                   <Input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     className="h-12 border-[#e4d7c9] bg-white/70 pl-11 pr-24 text-[#2b1a0f]"
                   />
                   <button
                     type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-pressed={showPassword}
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-3 py-2 text-xs font-semibold text-[#5c4227] transition hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-[#5c4227]/50"
                   >
-                    Mostrar
+                    {showPassword ? 'Ocultar' : 'Mostrar'}
                   </button>
                 </div>
               </div>
