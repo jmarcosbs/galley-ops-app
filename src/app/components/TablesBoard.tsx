@@ -62,6 +62,28 @@ const getDepartmentLabel = (department?: string | null) => {
   return 'Cozinha';
 };
 
+const resolveTableStatusBadge = (status?: string, statusLabel?: string) => {
+  if (!status && !statusLabel) {
+    return null;
+  }
+  if (status === 'partially_paid') {
+    return {
+      label: statusLabel ?? 'Parcialmente fechada',
+      className: 'bg-yellow-100 text-yellow-800',
+    };
+  }
+  if (status === 'open') {
+    return {
+      label: statusLabel ?? 'Aberta',
+      className: 'bg-green-100 text-green-800',
+    };
+  }
+  return {
+    label: statusLabel ?? status ?? '',
+    className: 'bg-slate-100 text-slate-700',
+  };
+};
+
 const formatElapsedTime = (dateString?: string | null, now: number = Date.now()) => {
   if (!dateString) return null;
   const timestamp = Date.parse(dateString);
@@ -935,61 +957,71 @@ export function TablesBoard() {
         </div>
 
         <div className="space-y-3">
-          {normalizedTables.map((table) => (
-            <Card
-              key={table.uuid}
-              onClick={() => handleShowItems(table)}
-              className="cursor-pointer"
-            >
-              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex w-full items-center gap-3 sm:w-auto">
-                  <div className="w-1/2">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xl font-semibold text-foreground">{table.label}</p>
-                      {canEditTableMetadata ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-[#5c4227]"
-                          onClick={(event) => handleOpenEditTableDialog(table, event)}
-                          aria-label={`Editar mesa ${table.label}`}
-                        >
-                          <ArrowUp01 className="h-4 w-4" />
-                        </Button>
-                      ) : null}
+          {normalizedTables.map((table) => {
+            const statusBadge = resolveTableStatusBadge(table.status, table.status_label);
+            return (
+              <Card
+                key={table.uuid}
+                onClick={() => handleShowItems(table)}
+                className="cursor-pointer"
+              >
+                <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex w-full items-center gap-3 sm:w-auto">
+                    <div className="w-1/2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xl font-semibold text-foreground">{table.label}</p>
+                        {statusBadge?.label ? (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusBadge.className}`}
+                          >
+                            {statusBadge.label}
+                          </span>
+                        ) : null}
+                        {canEditTableMetadata ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-[#5c4227]"
+                            onClick={(event) => handleOpenEditTableDialog(table, event)}
+                            aria-label={`Editar mesa ${table.label}`}
+                          >
+                            <ArrowUp01 className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {table.total != null ? currencyFormatter.format(table.total) : 'Total pendente'}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {table.total != null ? currencyFormatter.format(table.total) : 'Total pendente'}
-                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex h-10 flex-1 items-center justify-center gap-2 sm:flex-none sm:px-4"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleShowItems(table);
+                      }}
+                    >
+                      <ReceiptText className="h-4 w-4" />
+                      Ver itens
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 sm:flex-none sm:px-4"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleOpenCloseDialog(table);
+                      }}
+                    >
+                      Fechar mesa
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex h-10 flex-1 items-center justify-center gap-2 sm:flex-none sm:px-4"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleShowItems(table);
-                    }}
-                  >
-                    <ReceiptText className="h-4 w-4" />
-                    Ver itens
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 sm:flex-none sm:px-4"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleOpenCloseDialog(table);
-                    }}
-                  >
-                    Fechar mesa
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
           {!normalizedTables.length ? (
             <div className="rounded-xl border border-dashed border-muted/70 bg-white/60 p-4 text-center text-sm text-muted-foreground">
               Nenhuma mesa aberta no momento.

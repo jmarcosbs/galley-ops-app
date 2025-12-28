@@ -28,6 +28,7 @@ export type OpenTable = {
   number: number;
   is_outside?: boolean;
   status: string;
+  status_label?: string;
   created_at: string;
   updated_at: string;
   total?: number | null;
