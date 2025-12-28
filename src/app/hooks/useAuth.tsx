@@ -22,6 +22,10 @@ type AuthState = {
     userInfo: UserInfo | null;
 };
 
+type RefreshError = Error & {
+    status?: number;
+};
+
 const AUTH_STORAGE_KEYS = new Set(["accessToken", "refreshToken", "accessExpiration", "userInfo"]);
 
 const DEFAULT_AUTH_STATE: AuthState = {
@@ -200,6 +204,14 @@ const getAccessExpiration = (token: string | null): number => {
     return decoded?.exp ? decoded.exp * 1000 : 0;
 };
 
+const createRefreshError = (message: string, status?: number): RefreshError => {
+    const error = new Error(message) as RefreshError;
+    if (typeof status === "number") {
+        error.status = status;
+    }
+    return error;
+};
+
 const emitAuthChange = () => {
     if (typeof window !== "undefined") {
         skipNextAuthEventSync = true;
@@ -292,16 +304,25 @@ export const useAuth = () => {
             throw new Error("No refresh token");
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/users/token/refresh/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ refresh: refreshTokenParam }),
-        });
+        let response: Response;
+        try {
+            response = await fetch(`${API_BASE_URL}/api/users/token/refresh/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ refresh: refreshTokenParam }),
+            });
+        } catch (error) {
+            throw createRefreshError("Network error while refreshing tokens", 0);
+        }
+
+        if (response.status === 401 || response.status === 403) {
+            throw createRefreshError("Invalid refresh token", response.status);
+        }
 
         if (!response.ok) {
-            throw new Error("Failed to refresh tokens");
+            throw createRefreshError(`Failed to refresh tokens`, response.status);
         }
 
         const data = await response.json();
