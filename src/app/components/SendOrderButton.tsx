@@ -15,6 +15,7 @@ import { useOrderContext } from '../../context/OrderContext';
 import { useAuth } from '../hooks/useAuth';
 import { useUtils } from '../hooks/useUtils';
 import { extractApiErrorMessage } from '@/lib/api-error';
+import { withIdempotencyKey } from '@/lib/idempotency';
 import { API_BASE_URL } from '@/lib/env';
 
 interface FeedbackState {
@@ -82,9 +83,9 @@ export default function SendOrderButton() {
         try {
             const response = await makeAuthenticatedRequest(fullUrl, {
                 method: 'POST',
-                headers: {
+                headers: withIdempotencyKey({
                     'Content-Type': 'application/json',
-                },
+                }),
                 body: orderData,
             });
     

@@ -23,6 +23,7 @@ import { useUtils } from '../hooks/useUtils';
 import { useMenu } from '../hooks/useMenu';
 import { extractApiErrorMessage } from '@/lib/api-error';
 import { API_BASE_URL } from '@/lib/env';
+import { withIdempotencyKey } from '@/lib/idempotency';
 
 type GroupedActiveItem = {
   key: string;
@@ -506,9 +507,9 @@ export function TablesBoard() {
         `${API_BASE_URL}/api/ticket-settlement/cancel/`,
         {
           method: 'POST',
-          headers: {
+          headers: withIdempotencyKey({
             'Content-Type': 'application/json',
-          },
+          }),
           body: JSON.stringify({
             settlement_uuid: cancelingSettlement.uuid,
             justification,
@@ -593,9 +594,9 @@ export function TablesBoard() {
         `${API_BASE_URL}/api/ticket-settlement/`,
         {
           method: 'POST',
-          headers: {
+          headers: withIdempotencyKey({
             'Content-Type': 'application/json',
-          },
+          }),
           body: JSON.stringify({
             ticket_number: closeTable.number,
             is_outside: closeTable.is_outside ?? false,
@@ -630,9 +631,9 @@ export function TablesBoard() {
       `${API_BASE_URL}/api/ticket-items/remove/`,
       {
         method: 'POST',
-        headers: {
+        headers: withIdempotencyKey({
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify({
           ticket_number: activeTable.number,
           is_outside: activeTable.is_outside ?? false,
@@ -656,9 +657,9 @@ export function TablesBoard() {
       `${API_BASE_URL}/api/ticket-items/increase/`,
       {
         method: 'POST',
-        headers: {
+        headers: withIdempotencyKey({
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify({
           ticket_number: activeTable.number,
           is_outside: activeTable.is_outside ?? false,
@@ -769,9 +770,9 @@ export function TablesBoard() {
         `${API_BASE_URL}/api/ticket-items/add/`,
         {
           method: 'POST',
-          headers: {
+          headers: withIdempotencyKey({
             'Content-Type': 'application/json',
-          },
+          }),
           body: JSON.stringify({
             ticket_number: activeTable.number,
             is_outside: activeTable.is_outside ?? false,
