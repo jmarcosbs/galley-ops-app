@@ -27,7 +27,16 @@ interface FeedbackState {
 type SendOrderResult = { success: true } | { success: false; message: string };
 
 export default function SendOrderButton() {
-    const { tableNumber, isOutside, dishes, getOrderAsJson } = useOrderContext();
+    const {
+        tableNumber,
+        setTableNumber,
+        isOutside,
+        setIsOutside,
+        dishes,
+        setDishes,
+        setNote,
+        getOrderAsJson,
+    } = useOrderContext();
     const [feedback, setFeedback] = useState<FeedbackState>({ open: false, message: '', type: 'success' });
     const [isSending, setIsSending] = useState(false);
     const { makeAuthenticatedRequest } = useAuth();
@@ -62,12 +71,17 @@ export default function SendOrderButton() {
     };
 
     const cleanApp = () => {
-        localStorage.removeItem('tableNumber'); // Remove o item em vez de definir como ""
-        localStorage.removeItem('isOutside'); // Remove o item
-        localStorage.removeItem('dishes'); // Remove o item
-        localStorage.removeItem('note'); // Remove o item
-        setTimeout(() => (window.location.reload()), 2000)
-        
+        // Reset state so the UI clears immediately after envio
+        setTableNumber(0);
+        setIsOutside(false);
+        setDishes([]);
+        setNote('');
+
+        // Mantém o localStorage limpo para o próximo acesso
+        localStorage.removeItem('tableNumber');
+        localStorage.removeItem('isOutside');
+        localStorage.removeItem('dishes');
+        localStorage.removeItem('note');
     };
 
     const sendOrder = async (): Promise<SendOrderResult> => {
