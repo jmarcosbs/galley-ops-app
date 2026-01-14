@@ -40,5 +40,7 @@ next-env.d.ts
 .env.production.local
 .env
 .env.production
+.env.*
+!.env.example
 
 sw.js.map
