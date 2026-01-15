@@ -967,8 +967,8 @@ export function TablesBoard() {
                 className="cursor-pointer"
               >
                 <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex w-full items-center gap-3 sm:w-auto">
-                    <div className="w-1/2">
+                  <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                    <div className="w-full sm:flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-xl font-semibold text-foreground">{table.label}</p>
                         {statusBadge?.label ? (
@@ -995,29 +995,31 @@ export function TablesBoard() {
                         {table.total != null ? currencyFormatter.format(table.total) : 'Total pendente'}
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex h-10 flex-1 items-center justify-center gap-2 sm:flex-none sm:px-4"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleShowItems(table);
-                      }}
-                    >
-                      <ReceiptText className="h-4 w-4" />
-                      Ver itens
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 sm:flex-none sm:px-4"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleOpenCloseDialog(table);
-                      }}
-                    >
-                      Fechar mesa
-                    </Button>
+                    <div className="flex w-full flex-row flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex h-10 flex-1 items-center justify-center gap-2 min-w-[140px] sm:flex-none sm:px-4"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleShowItems(table);
+                        }}
+                      >
+                        <ReceiptText className="h-4 w-4" />
+                        Ver itens
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 min-w-[140px] sm:w-auto sm:flex-none sm:px-4"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenCloseDialog(table);
+                        }}
+                      >
+                        Fechar mesa
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1050,10 +1052,10 @@ export function TablesBoard() {
                   key={entry.uuid}
                   className="flex flex-col gap-1 rounded-lg border border-muted/70 bg-white px-3 py-3 shadow-sm"
                 >
-                  <div className="flex items-center justify-between text-sm font-semibold text-[#5c4227]">
+                  <div className="flex flex-col gap-3 text-sm font-semibold text-[#5c4227] sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                      <span>Mesa {entry.ticket_label ?? entry.ticket_number}</span>
+                        <span>Mesa {entry.ticket_label ?? entry.ticket_number}</span>
                         {isCanceled ? (
                           <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700">
                             Cancelado
@@ -1074,35 +1076,37 @@ export function TablesBoard() {
                         Fechada por {entry.settled_by} em {formatSettlementDate(entry.created_at)}
                       </p>
                     </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span>{currencyFormatter.format(entry.final_value ?? 0)}</span>
-                        <div className="flex flex-wrap justify-end gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+                      <span className="text-base sm:text-right">
+                        {currencyFormatter.format(entry.final_value ?? 0)}
+                      </span>
+                      <div className="flex w-full flex-wrap justify-start gap-2 sm:w-auto sm:justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-xs"
+                          onClick={() => handleOpenHistoryItems(entry)}
+                          disabled={!entry.items?.length}
+                        >
+                          <ReceiptText className="h-3 w-3" />
+                          Ver itens
+                        </Button>
+                        {!isCanceled ? (
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             className="h-7 gap-1 px-2 text-xs"
-                            onClick={() => handleOpenHistoryItems(entry)}
-                            disabled={!entry.items?.length}
+                            onClick={() => handleReprintSettlement(entry.uuid)}
+                            disabled={isReprintingCurrent}
                           >
-                            <ReceiptText className="h-3 w-3" />
-                            Ver itens
+                            <Printer className="h-3 w-3" />
+                            {isReprintingCurrent ? 'Reimprimindo...' : 'Reimprimir'}
                           </Button>
-                          {!isCanceled ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 gap-1 px-2 text-xs"
-                              onClick={() => handleReprintSettlement(entry.uuid)}
-                              disabled={isReprintingCurrent}
-                            >
-                              <Printer className="h-3 w-3" />
-                              {isReprintingCurrent ? 'Reimprimindo...' : 'Reimprimir'}
-                            </Button>
-                          ) : null}
-                          {canShowCancel ? (
-                            <Button
-                              variant="destructive"
-                              size="sm"
+                        ) : null}
+                        {canShowCancel ? (
+                          <Button
+                            variant="destructive"
+                            size="sm"
                             className="h-7 px-2 text-xs"
                             onClick={() => handleOpenCancelDialog(entry)}
                             disabled={isCancelingCurrent}

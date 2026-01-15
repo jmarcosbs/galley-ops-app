@@ -105,7 +105,10 @@ function LayoutShellContent({ children }: LayoutShellProps) {
                       Gerenciar mesas
                     </button>
                   </DialogTrigger>
-                  <DialogContent className="left-0 top-0 h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none border-none bg-background p-0 [&>button:last-child]:hidden">
+                  <DialogContent
+                    className="!left-0 !top-0 !translate-x-0 !translate-y-0 !max-w-none h-screen max-h-screen w-screen overflow-y-auto rounded-none border-none bg-background p-0 [&>button:last-child]:hidden"
+                    style={{ height: '100dvh', maxHeight: '100dvh' }}
+                  >
                     <DialogHeader className="sr-only">
                       <DialogTitle>Gerenciar mesas</DialogTitle>
                     </DialogHeader>

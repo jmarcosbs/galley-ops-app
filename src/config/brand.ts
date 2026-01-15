@@ -6,8 +6,8 @@ const getEnv = (key: string, fallback: string) => {
 };
 
 export const brandConfig = {
-  name: getEnv('NEXT_PUBLIC_BRAND_NAME', 'Seu Restaurante'),
-  shortName: getEnv('NEXT_PUBLIC_BRAND_SHORT_NAME', 'Seu Restaurante'),
+  name: getEnv('NEXT_PUBLIC_BRAND_NAME', 'Galley Ops'),
+  shortName: getEnv('NEXT_PUBLIC_BRAND_SHORT_NAME', 'Galley Ops'),
   descriptor: getEnv('NEXT_PUBLIC_BRAND_DESCRIPTOR', 'Pedidos internos'),
   badgeLabel: getEnv('NEXT_PUBLIC_BRAND_BADGE_LABEL', 'Pedidos internos'),
   categoryLabel: getEnv('NEXT_PUBLIC_BRAND_CATEGORY_LABEL', 'Restaurante'),
