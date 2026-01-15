@@ -1,6 +1,6 @@
 {
-  "name": "Marinheiros - Pedidos V2",
-  "short_name": "Marinheiros V2",
+  "name": "Galley Ops - Internal Orders",
+  "short_name": "Galley Ops Orders",
   "icons": [
     {
       "src": "/icons/manifest-icon-192.maskable.png",

@@ -2,11 +2,12 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import LayoutShell from "@/app/components/LayoutShell";
+import { pwaConfig } from "@/config/brand";
 
-const APP_NAME = "Marinheiros Pedidos";
-const APP_DEFAULT_TITLE = "Marinheiros Pedidos";
+const APP_NAME = pwaConfig.name;
+const APP_DEFAULT_TITLE = pwaConfig.name;
 const APP_TITLE_TEMPLATE = "%s";
-const APP_DESCRIPTION = ":)";
+const APP_DESCRIPTION = pwaConfig.description;
 
 const APPLE_STARTUP_IMAGES: { url: string; media: string }[] = [
   {

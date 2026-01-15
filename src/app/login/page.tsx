@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '../hooks/useAuth';
 import { FormEvent, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
+import { brandConfig } from '@/config/brand';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -45,9 +46,11 @@ export default function LoginPage() {
             </span>
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-white/60">
-                Marinheiro&apos;s
+                {brandConfig.shortName}
               </p>
-              <p className="text-sm font-semibold text-white">Pedidos internos</p>
+              <p className="text-sm font-semibold text-white">
+                {brandConfig.badgeLabel}
+              </p>
             </div>
           </div>
         </div>

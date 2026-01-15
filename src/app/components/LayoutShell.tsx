@@ -22,9 +22,10 @@ import { DashboardDialog } from '@/app/components/DashboardDialog';
 import { OrderProvider } from '@/context/OrderContext';
 import { X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import {  AuthContext, AuthProvider } from '@/context/AuthContext';
+import { AuthContext, AuthProvider } from '@/context/AuthContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { Toaster } from 'sonner';
+import { brandConfig } from '@/config/brand';
 
 type LayoutShellProps = {
   children: ReactNode;
@@ -85,10 +86,10 @@ function LayoutShellContent({ children }: LayoutShellProps) {
         <div className="flex items-center gap-4">
           <div className="leading-tight">
             <p className="text-xs uppercase tracking-[0.3em] text-white/70">
-              Restaurante
+              {brandConfig.categoryLabel}
             </p>
             <p className="text-xs uppercase tracking-[0.3em] text-white">
-              Marinheiro&apos;s
+              {brandConfig.shortName}
             </p>
           </div>
           <NavigationMenu className="w-full justify-end">
